@@ -1,3 +1,25 @@
-# Hermes face
+# Hermes face — skill-craft-market
 
-Prefer hermes-skills-marketplace snapshots from skill-craft tags. This repo does not replace HSM.
+Hermes uses skillhub / software-development skill-dir layout (not Claude plugin marketplaces).
+
+## Recommended: skill-dir install from skill-craft
+
+```sh
+git clone https://github.com/whichguy/skill-craft.git
+cd skill-craft
+./install.sh --skill skill-interop --hermes-only
+```
+
+Destination (host):
+
+`~/.hermes/skills/software-development/skill-interop`
+
+When `~/.hermes` is bind-mounted into the Hermes container at `/opt/data`, the container path is:
+
+`/opt/data/skills/software-development/skill-interop`
+
+Skill SoT: [whichguy/skill-craft](https://github.com/whichguy/skill-craft)  
+path: `skills/skill-interop` (ref `main` until first tag).
+
+This face holds **docs only** (no skill prompt bodies). Hermes is not covered by the
+skill-interop marketplace facade CLI (skill-dir only).

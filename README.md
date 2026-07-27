@@ -1,25 +1,57 @@
 # skill-craft-market
 
-Multi-host **marketplace adapters** for [skill-craft](https://github.com/whichguy/skill-craft).
+**Multi-host marketplace adapters** that pin skills from
+[skill-craft](https://github.com/whichguy/skill-craft).
 
-- **skill-craft** = skill bodies (SoT)
-- **skill-craft-market** = catalogs / attach docs only
+This repo is a **catalog only**. It does **not** contain skill prompt bodies
+(`SKILL.md` SoT lives in skill-craft). Each host face points at a skill-craft
+path (e.g. `skills/skill-interop`) via git-subdir or host-specific install notes.
 
-No single marketplace format is shared by Claude/Grok/Codex/Hermes. Shared unit is agentskills packages.
+## skill-craft vs skill-craft-market vs claude-craft
 
-## Claude
+| Repo | Contains | Role |
+|------|----------|------|
+| **skill-craft** | `skills/<leaf>/…` | Host-neutral skill source of truth |
+| **skill-craft-market** (this repo) | Host faces / pins / docs | Marketplace adapters only |
+| **claude-craft** | Claude Code plugins | Separate product marketplace |
 
-```bash
-claude plugin marketplace add whichguy/skill-craft-market
+## Faces
+
+```text
+faces/
+  claude/     Claude Code marketplace.json (git-subdir pins → skill-craft)
+  grok/       Grok install notes
+  codex/      Codex install notes
+  hermes/     Hermes skillhub notes
+```
+
+### Claude
+
+```sh
+# Add this marketplace face (path to faces/claude)
+claude plugin marketplace add /path/to/skill-craft-market/faces/claude
+# or, after publish, a git source that resolves marketplace.json under faces/claude
+
 claude plugin install skill-interop@skill-craft-market
 ```
 
-Root `.claude-plugin/marketplace.json` lists pins into `whichguy/skill-craft`.
+Pin shape: `source: { source: git-subdir, url: whichguy/skill-craft, path: skills/skill-interop, ref: main }`
+(until the first release tag).
 
-## Grok / Codex / Hermes
+### Grok / Codex / Hermes
 
-See `faces/*/README.md`. Prefer skill-dir install from skill-craft for Grok/Codex; Hermes via HSM snapshots.
+See `faces/<host>/README.md`. Skill-dir side-load remains:
+
+```sh
+# From a skill-craft clone
+./install.sh --skill skill-interop
+```
+
+## Package layout
+
+See [docs/package-layout.md](docs/package-layout.md).
 
 ## License
 
-MIT
+Catalog metadata is dual-licensed with skill-craft intent (MIT-friendly). Skill
+packages themselves are licensed in skill-craft.

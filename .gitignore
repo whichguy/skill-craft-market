@@ -1,2 +1,8 @@
 .DS_Store
 *.log
+.results/
+results/
+node_modules/
+__pycache__/
+*.pyc
+.claude/worktrees/

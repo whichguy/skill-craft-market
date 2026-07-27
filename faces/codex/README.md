@@ -1,4 +1,22 @@
-# Codex face
+# Codex face — skill-craft-market
 
-Default: skill-dir via skill-craft `./install.sh --codex-only`.
-Optional later: codex plugin marketplace add once smoked.
+## Recommended: skill-dir install from skill-craft
+
+```sh
+git clone https://github.com/whichguy/skill-craft.git
+cd skill-craft
+./install.sh --skill skill-interop --codex-only
+```
+
+Destination: `~/.codex/skills/skill-interop` → skill-craft `skills/skill-interop`.
+
+## Plugin marketplace
+
+Codex plugin CLIs (when used) take host-specific marketplace/plugin commands. Skill
+packages are not required to be packaged as Codex plugins; skill-dir install is the
+portable path.
+
+Skill SoT: [whichguy/skill-craft](https://github.com/whichguy/skill-craft)  
+path: `skills/skill-interop` (ref `main` until first tag).
+
+This face holds **docs only** (no skill prompt bodies).
