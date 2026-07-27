@@ -16,7 +16,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
-        "path": "skills/skill-interop",
+        "path": "plugins/skill-interop",
         "ref": "main"
       }
     }
