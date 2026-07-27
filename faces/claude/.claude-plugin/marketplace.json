@@ -1,0 +1,21 @@
+{
+  "name": "skill-craft-market",
+  "owner": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "description": "Host-family marketplace face for skill-craft portable skills. Catalog only; skill bodies live in whichguy/skill-craft.",
+  "plugins": [
+    {
+      "name": "skill-interop",
+      "version": "0.2.0",
+      "description": "Portable multi-host skill create/review + marketplace CLI facade.",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "skills/skill-interop",
+        "ref": "main"
+      }
+    }
+  ]
+}
