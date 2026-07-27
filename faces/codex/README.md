@@ -17,6 +17,6 @@ packages are not required to be packaged as Codex plugins; skill-dir install is 
 portable path.
 
 Skill SoT: [whichguy/skill-craft](https://github.com/whichguy/skill-craft)  
-path: `skills/skill-interop` (ref `main` until first tag).
+skill-dir path: `skills/skill-interop` (not the Claude pin path `plugins/skill-interop`).
 
 This face holds **docs only** (no skill prompt bodies).

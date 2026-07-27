@@ -19,7 +19,7 @@ When `~/.hermes` is bind-mounted into the Hermes container at `/opt/data`, the c
 `/opt/data/skills/software-development/skill-interop`
 
 Skill SoT: [whichguy/skill-craft](https://github.com/whichguy/skill-craft)  
-path: `skills/skill-interop` (ref `main` until first tag).
+skill-dir path: `skills/skill-interop` (not the Claude pin path `plugins/skill-interop`).
 
 This face holds **docs only** (no skill prompt bodies). Hermes is not covered by the
 skill-interop marketplace facade CLI (skill-dir only).
