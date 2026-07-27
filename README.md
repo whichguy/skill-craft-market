@@ -36,6 +36,7 @@ sync with `faces/claude/`).
 claude plugin marketplace add whichguy/skill-craft-market
 claude plugin marketplace update skill-craft-market
 claude plugin install skill-interop@skill-craft-market
+# also: prompt-audit prompt-align prompt-migrate prompt-refine c-plan
 claude plugin list --json
 
 # Local clone of this repo (root has .claude-plugin/marketplace.json)

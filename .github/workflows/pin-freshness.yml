@@ -1,0 +1,76 @@
+name: pin-freshness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  check-pins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify git-subdir pins resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+
+          paths = [
+              Path(".claude-plugin/marketplace.json"),
+              Path("faces/claude/.claude-plugin/marketplace.json"),
+          ]
+          fails = 0
+          for path in paths:
+              data = json.loads(path.read_text())
+              for plugin in data.get("plugins", []):
+                  src = plugin.get("source") or {}
+                  if src.get("source") != "git-subdir":
+                      continue
+                  url = src.get("url", "")
+                  ref = src.get("ref", "main")
+                  sub = src.get("path", "")
+                  name = plugin.get("name")
+                  # sparse checkout of path at ref
+                  print(f"check {name} path={sub} ref={ref}")
+                  r = subprocess.run(
+                      ["git", "ls-remote", url, ref],
+                      capture_output=True, text=True,
+                  )
+                  if r.returncode != 0 or not r.stdout.strip():
+                      print(f"FAIL {name}: ref {ref} not found on {url}", file=sys.stderr)
+                      fails += 1
+                      continue
+                  # path existence via archive
+                  r2 = subprocess.run(
+                      ["git", "archive", f"--remote={url}", ref, f"{sub}/.claude-plugin/plugin.json"],
+                      capture_output=True,
+                  )
+                  # git archive --remote often disabled on GitHub; fall back to API
+                  if r2.returncode != 0:
+                      # GitHub contents API
+                      repo = url.rstrip("/").removesuffix(".git").split("github.com/")[-1]
+                      api = f"https://api.github.com/repos/{repo}/contents/{sub}/.claude-plugin/plugin.json?ref={ref}"
+                      r3 = subprocess.run(
+                          ["curl", "-fsSL", "-H", f"Authorization: Bearer {__import__('os').environ.get('GH_TOKEN','')}",
+                           "-H", "Accept: application/vnd.github+json", api],
+                          capture_output=True, text=True,
+                      )
+                      if r3.returncode != 0:
+                          print(f"FAIL {name}: path {sub}/.claude-plugin/plugin.json missing at {ref}", file=sys.stderr)
+                          print(r3.stderr[:300], file=sys.stderr)
+                          fails += 1
+                      else:
+                          print(f"OK   {name}")
+                  else:
+                      print(f"OK   {name}")
+          if fails:
+              sys.exit(1)
+          print("pin-freshness: all pins OK")
+          PY

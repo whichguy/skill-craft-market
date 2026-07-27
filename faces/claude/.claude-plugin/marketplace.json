@@ -9,7 +9,7 @@
     {
       "name": "skill-interop",
       "description": "Author or review portable multi-host agent skills (Grok, Claude Code, Codex, Hermes): prompt-first design, scaffold, install, marketplace facade.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "whichguy"
       },
@@ -17,7 +17,77 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/skill-interop",
-        "ref": "v0.2.0"
+        "ref": "v0.2.1"
+      }
+    },
+    {
+      "name": "prompt-audit",
+      "description": "Audit an agent or skill prompt file for internal inconsistencies (phase numbering, contracts, terminology, stale references).",
+      "version": "0.2.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/prompt-audit",
+        "ref": "v0.2.1"
+      }
+    },
+    {
+      "name": "prompt-align",
+      "description": "Compare an agent or skill prompt against its test harness for phase-model, skip-condition, and wiring consistency.",
+      "version": "0.2.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/prompt-align",
+        "ref": "v0.2.1"
+      }
+    },
+    {
+      "name": "prompt-migrate",
+      "description": "TDD-based prompt migration: write failing tests first, then update the prompt and commit atomically.",
+      "version": "0.2.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/prompt-migrate",
+        "ref": "v0.2.1"
+      }
+    },
+    {
+      "name": "prompt-refine",
+      "description": "Full prompt-improvement workflow: audit \u2192 remediate plan \u2192 migrate \u2192 align.",
+      "version": "0.2.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/prompt-refine",
+        "ref": "v0.2.1"
+      }
+    },
+    {
+      "name": "c-plan",
+      "description": "Resolve ambiguous prompts: answer now, answer with assumptions, ask 1\u20132 high-value questions, replan, or stop.",
+      "version": "0.2.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/c-plan",
+        "ref": "v0.2.1"
       }
     }
   ]
