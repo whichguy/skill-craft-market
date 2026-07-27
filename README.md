@@ -31,6 +31,9 @@ sync with `faces/claude/`).
 
 ### Claude
 
+**Preferred source:** GitHub marketplace `whichguy/skill-craft-market` (not a local path clone).
+
+
 ```sh
 # Git marketplace (preferred after publish)
 claude plugin marketplace add whichguy/skill-craft-market
@@ -87,3 +90,13 @@ See [docs/package-layout.md](docs/package-layout.md).
 
 Catalog metadata is dual-licensed with skill-craft intent (MIT-friendly). Skill
 packages themselves are licensed in skill-craft.
+
+
+## Dual-track install
+
+| Track | Who | How |
+|-------|-----|-----|
+| **Skill-dir (all hosts)** | Dev / multi-host | Clone skill-craft → `./install.sh [--skill <leaf>] [--relink]` |
+| **Claude plugin** | Claude Code only | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
+
+Skill-dir and plugin installs do **not** auto-sync. After editing skill bodies in skill-craft, run `./scripts/sync-plugin-views.sh` before tagging so Claude pins get the materialised tree.
