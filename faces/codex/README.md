@@ -24,7 +24,7 @@ This face holds **docs only** (no skill prompt bodies).
 ## Multi-skill monorepo
 
 skill-craft now ships multiple portable skills (skill-interop, c-plan, prompt-*,
-architect, plan-test, compare-prompts, …). Skill-dir install:
+architect, plan-test, compare-prompts, lennox-s40, …). Skill-dir install:
 
 ```sh
 cd skill-craft && ./install.sh          # all skills
