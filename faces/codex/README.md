@@ -36,3 +36,10 @@ Claude plugin catalog: sibling marketplace pins under `plugins/<leaf>` @ release
 ## Standalone: lennox-s40
 
 Thermostat skill: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40). `cd ~/src/lennox-s40 && ./install.sh`.
+
+## devloop-run
+
+```sh
+cd skill-craft && ./install.sh --skill devloop-run --codex-only   # or --codex-only
+bash ~/.codex/skills/devloop-run/scripts/devloop-run --setup
+```
