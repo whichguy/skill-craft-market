@@ -9,7 +9,7 @@
     {
       "name": "architect",
       "description": "Design system architecture and make technology decisions. Dispatches to system-architect agent for comprehensive design work.",
-      "version": "0.2.2",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -17,13 +17,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/architect",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "c-plan",
-      "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1\u20132 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk,",
-      "version": "0.2.2",
+      "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1\u20132 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -31,13 +31,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/c-plan",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "compare-prompts",
       "description": "Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results on three dimensions in priority order: quality > tokens > time.",
-      "version": "0.2.2",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -45,13 +45,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/compare-prompts",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "derive-questions",
-      "description": "Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their effectiveness via a parallel judge agent, refines them, and persi",
-      "version": "0.2.2",
+      "description": "Iteratively researches real software project failures and wins, extracts key planning questions via 5-whys analysis, validates them against synthetic test plans, judges their effectiveness via a parallel judge agent, refines them, and persists to a growing questions library. Builds a curated, language/system-agnostic question library that prevents known failure modes when applied during software planning.",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -59,13 +59,27 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/derive-questions",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
+      }
+    },
+    {
+      "name": "devloop-run",
+      "description": "Use when invoking the Hermes-backed devloop engine for a machine-verifiable build/debug goal: resolve the installed devloop CLI and run it with an explicit --repo or scratch request. Discovery card for all hosts; execution requires a resolved Hermes/devloop engine tree (not multi-host runtime).",
+      "version": "0.1.0",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/devloop-run",
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "improve-system-prompt",
-      "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic sco",
-      "version": "0.2.2",
+      "description": "Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the real GAS-side ClaudeConversation pipeline. Tests both system-placement and user-placement, then evaluates with heuristic scoring (ABTestHarness) and LLM-as-judge.",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -73,13 +87,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve-system-prompt",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "plan-test",
       "description": "Generate comprehensive tests for code. Dispatches to qa-analyst agent for complex components requiring test architecture decisions.",
-      "version": "0.2.2",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -87,13 +101,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/plan-test",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "prompt-align",
       "description": "Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring consistency. Reports mismatches and identifies which file is authoritative.",
-      "version": "0.2.2",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -101,13 +115,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-align",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "prompt-audit",
-      "description": "Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any promp",
-      "version": "0.2.2",
+      "description": "Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a learnings section, and a remediation list. Use before any prompt migration.",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -115,13 +129,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-audit",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "prompt-migrate",
       "description": "TDD-based prompt migration \u2014 given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
-      "version": "0.2.2",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -129,13 +143,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-migrate",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "prompt-refine",
-      "description": "Full prompt-improvement workflow \u2014 runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs ",
-      "version": "0.2.2",
+      "description": "Full prompt-improvement workflow \u2014 runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -143,13 +157,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-refine",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "question-bench",
-      "description": "Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments, evaluates each against fixed plan-quality questions (Q-PQ1..Q-PQ8), an",
-      "version": "0.2.2",
+      "description": "Benchmark review-plan question effectiveness via experiment-based ablation. Applies different question subsets to a plan (or directory of plans) in parallel experiments, evaluates each against fixed plan-quality questions (Q-PQ1..Q-PQ8), and compares quality spreads to identify which questions drive real improvement.",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -157,13 +171,27 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/question-bench",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
+      }
+    },
+    {
+      "name": "review-coverage",
+      "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Use when: writing or reviewing a plan that needs residual\u00d72 after implement; ensuring the plan carries a /goal-ready Review Coverage section; running coverage after ship against plan specs (forward + reverse). Not for pre-exit plan quality (use review-plan) or raw residual\u00d72 engine mechanics alone (use review-converge under /goal).",
+      "version": "0.1.0",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/review-coverage",
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "review-fix-bench",
-      "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to compa",
-      "version": "0.2.2",
+      "description": "A/B benchmarking skill for code reviewer agent prompts. Runs two versions of a reviewer agent against fixture ground truth using an LLM judge for semantic evaluation, then compares precision/recall/F1 metrics side-by-side. Defaults to comparing current agent vs git HEAD~1. Reports IMPROVED / REGRESSED / NEUTRAL verdict on F1.",
+      "version": "0.1.0",
       "author": {
         "name": "whichguy"
       },
@@ -171,13 +199,13 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/review-fix-bench",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     },
     {
       "name": "skill-interop",
-      "description": "Portable multi-host skill create/review + marketplace CLI facade (Grok, Claude, Codex, Hermes).",
-      "version": "0.2.2",
+      "description": "Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill layout, review skill for interop, or install across hosts. Covers prompt-first design, host matrix, anti-patterns (divergent copies, silent mode fallback, abs symlinks), and script-backed CLI contracts.",
+      "version": "0.2.0",
       "author": {
         "name": "whichguy"
       },
@@ -185,7 +213,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/skill-interop",
-        "ref": "v0.2.2"
+        "ref": "v0.3.0"
       }
     }
   ]
