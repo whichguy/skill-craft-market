@@ -22,7 +22,7 @@
     },
     {
       "name": "c-plan",
-      "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1\u20132 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
+      "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
       "version": "0.1.0",
       "author": {
         "name": "whichguy"
@@ -148,7 +148,7 @@
     },
     {
       "name": "prompt-migrate",
-      "description": "TDD-based prompt migration \u2014 given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
+      "description": "TDD-based prompt migration — given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
       "version": "0.1.0",
       "author": {
         "name": "whichguy"
@@ -162,7 +162,7 @@
     },
     {
       "name": "prompt-refine",
-      "description": "Full prompt-improvement workflow \u2014 runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.",
+      "description": "Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.",
       "version": "0.1.0",
       "author": {
         "name": "whichguy"
@@ -190,8 +190,8 @@
     },
     {
       "name": "review-coverage",
-      "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Use when: writing or reviewing a plan that needs residual\u00d72 after implement; ensuring the plan carries a /goal-ready Review Coverage section; running coverage after ship against plan specs (forward + reverse). Not for pre-exit plan quality (use review-plan) or raw residual\u00d72 engine mechanics alone (use review-converge under /goal).",
-      "version": "0.1.0",
+      "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Use when: writing or reviewing a plan that needs residual×2 after implement; \"review-coverage on this plan\"; ensuring the plan carries a /goal-ready Review Coverage section; \"residual×2 after ship\" / running coverage after ship against plan specs (forward + reverse). Not for pre-exit plan quality (use review-plan) or raw residual×2 engine mechanics alone (use review-converge under /goal).",
+      "version": "0.2.2",
       "author": {
         "name": "whichguy"
       },
@@ -199,7 +199,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/review-coverage",
-        "ref": "v0.3.0"
+        "ref": "v0.3.1"
       }
     },
     {
