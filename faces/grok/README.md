@@ -33,3 +33,7 @@ cd skill-craft && ./install.sh --skill architect
 ```
 
 Claude plugin catalog: sibling marketplace pins under `plugins/<leaf>` @ release tags.
+
+## Standalone: lennox-s40
+
+Thermostat skill: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40). `cd ~/src/lennox-s40 && ./install.sh`.

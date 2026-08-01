@@ -99,8 +99,8 @@
       },
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/whichguy/skill-craft.git",
-        "path": "plugins/lennox-s40",
+        "url": "https://github.com/whichguy/lennox-s40.git",
+        "path": ".",
         "ref": "main"
       }
     },
