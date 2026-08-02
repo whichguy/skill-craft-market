@@ -64,8 +64,8 @@
     },
     {
       "name": "devloop-run",
-      "description": "Portable card for the devloop engine (machine-verifiable build/debug). Install on Claude/Grok/Codex; run scripts/devloop-run --setup to bootstrap a host-local engine under ~/.local/share/devloop (or reuse Hermes). Not Hermes-only discovery.",
-      "version": "0.2.0",
+      "description": "Portable card for the devloop engine (machine-verifiable build/debug). Install on Claude/Grok/Codex; run scripts/devloop-run --setup to bootstrap a host-local engine under ~/.local/share/devloop (pin+sha verified). Setup/probe are multi-host; full autonomous loops still default to Hermes transport.",
+      "version": "0.3.0",
       "author": {
         "name": "whichguy"
       },
@@ -73,7 +73,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/devloop-run",
-        "ref": "main"
+        "ref": "devloop-run-v0.3.0"
       }
     },
     {
@@ -191,7 +191,7 @@
     {
       "name": "review-coverage",
       "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, \"review-coverage on this plan\", residual×2 after ship, or ensure the plan has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality (use review-plan) or raw residual×2 engine mechanics alone (use review-converge under /goal).",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "author": {
         "name": "whichguy"
       },
@@ -199,7 +199,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/review-coverage",
-        "ref": "v0.3.2"
+        "ref": "v0.3.3"
       }
     },
     {
