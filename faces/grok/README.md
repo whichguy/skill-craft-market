@@ -40,6 +40,8 @@ Thermostat skill: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40).
 
 ## devloop-run
 
+Setup/probe multi-host; full engine loops still default to Hermes transport.
+
 ```sh
 cd skill-craft && ./install.sh --skill devloop-run --grok-only   # or --codex-only
 bash ~/.grok/skills/devloop-run/scripts/devloop-run --setup
