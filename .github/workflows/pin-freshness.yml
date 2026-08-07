@@ -13,64 +13,135 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify git-subdir pins resolve
+      - name: Verify catalog pins (ref + version + no hooks)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 <<'PY'
-          import json, subprocess, sys
+          import base64
+          import json
+          import os
+          import subprocess
+          import sys
+          import urllib.request
           from pathlib import Path
 
-          paths = [
-              Path(".claude-plugin/marketplace.json"),
-              Path("faces/claude/.claude-plugin/marketplace.json"),
-          ]
+          path = Path(".claude-plugin/marketplace.json")
           fails = 0
-          for path in paths:
-              data = json.loads(path.read_text())
-              for plugin in data.get("plugins", []):
-                  src = plugin.get("source") or {}
-                  if src.get("source") != "git-subdir":
-                      continue
-                  url = src.get("url", "")
-                  ref = src.get("ref", "main")
-                  sub = src.get("path", "")
-                  name = plugin.get("name")
-                  # sparse checkout of path at ref
-                  print(f"check {name} path={sub} ref={ref}")
-                  r = subprocess.run(
-                      ["git", "ls-remote", url, ref],
-                      capture_output=True, text=True,
+          advisories = 0
+          token = os.environ.get("GH_TOKEN", "")
+
+          def gh_json(url: str):
+              req = urllib.request.Request(url)
+              if token:
+                  req.add_header("Authorization", f"Bearer {token}")
+                  req.add_header("Accept", "application/vnd.github+json")
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  return json.load(r)
+
+          data = json.loads(path.read_text())
+          desc = data.get("description") or ""
+          if "No hooks" not in desc and "no hooks" not in desc.lower():
+              print(
+                  f"FAIL {path}: marketplace description must state No hooks",
+                  file=sys.stderr,
+              )
+              fails += 1
+          if data.get("hooks"):
+              print(f"FAIL {path}: catalog must not define hooks", file=sys.stderr)
+              fails += 1
+
+          faces_claude = Path("faces/claude/.claude-plugin/marketplace.json")
+          if faces_claude.exists():
+              print(
+                  f"FAIL {faces_claude}: dual catalog forbidden — root marketplace.json only",
+                  file=sys.stderr,
+              )
+              fails += 1
+
+          for plugin in data.get("plugins", []):
+              name = plugin.get("name")
+              if plugin.get("hooks"):
+                  print(
+                      f"FAIL {name}: plugin entry must not define hooks",
+                      file=sys.stderr,
                   )
-                  if r.returncode != 0 or not r.stdout.strip():
-                      print(f"FAIL {name}: ref {ref} not found on {url}", file=sys.stderr)
+                  fails += 1
+              src = plugin.get("source") or {}
+              if src.get("source") != "git-subdir":
+                  print(f"SKIP {name}: source is not git-subdir")
+                  continue
+              url = src.get("url", "")
+              ref = src.get("ref", "main")
+              sub = src.get("path", "")
+              cat_ver = plugin.get("version")
+              print(f"check {name} path={sub!r} ref={ref} catalog_version={cat_ver}")
+
+              r = subprocess.run(
+                  ["git", "ls-remote", url, ref],
+                  capture_output=True,
+                  text=True,
+              )
+              if r.returncode != 0 or not r.stdout.strip():
+                  print(
+                      f"FAIL {name}: ref {ref} not found on {url}",
+                      file=sys.stderr,
+                  )
+                  fails += 1
+                  continue
+
+              repo = url.rstrip("/").removesuffix(".git").split("github.com/")[-1]
+              if sub in (".", ""):
+                  pj_path = ".claude-plugin/plugin.json"
+              else:
+                  pj_path = f"{sub}/.claude-plugin/plugin.json"
+              api = f"https://api.github.com/repos/{repo}/contents/{pj_path}?ref={ref}"
+              try:
+                  meta = gh_json(api)
+                  body = base64.b64decode(meta["content"]).decode()
+                  pj = json.loads(body)
+                  pj_ver = pj.get("version")
+                  if cat_ver and pj_ver and str(cat_ver) != str(pj_ver):
+                      print(
+                          f"FAIL {name}: catalog version {cat_ver} != "
+                          f"plugin.json version {pj_ver} at {ref}",
+                          file=sys.stderr,
+                      )
                       fails += 1
                       continue
-                  # path existence via archive
-                  r2 = subprocess.run(
-                      ["git", "archive", f"--remote={url}", ref, f"{sub}/.claude-plugin/plugin.json"],
-                      capture_output=True,
-                  )
-                  # git archive --remote often disabled on GitHub; fall back to API
-                  if r2.returncode != 0:
-                      # GitHub contents API
-                      repo = url.rstrip("/").removesuffix(".git").split("github.com/")[-1]
-                      api = f"https://api.github.com/repos/{repo}/contents/{sub}/.claude-plugin/plugin.json?ref={ref}"
-                      r3 = subprocess.run(
-                          ["curl", "-fsSL", "-H", f"Authorization: Bearer {__import__('os').environ.get('GH_TOKEN','')}",
-                           "-H", "Accept: application/vnd.github+json", api],
-                          capture_output=True, text=True,
+                  if pj.get("hooks"):
+                      print(
+                          f"FAIL {name}: target plugin.json must not define hooks",
+                          file=sys.stderr,
                       )
-                      if r3.returncode != 0:
-                          print(f"FAIL {name}: path {sub}/.claude-plugin/plugin.json missing at {ref}", file=sys.stderr)
-                          print(r3.stderr[:300], file=sys.stderr)
-                          fails += 1
-                      else:
-                          print(f"OK   {name}")
-                  else:
-                      print(f"OK   {name}")
+                      fails += 1
+                      continue
+                  # Content-drift advisory: catalog description vs plugin description
+                  cat_d = (plugin.get("description") or "").strip()
+                  pj_d = (pj.get("description") or "").strip()
+                  if cat_d and pj_d and cat_d != pj_d:
+                      print(
+                          f"ADVISORY {name}: catalog description differs from "
+                          f"plugin.json description at {ref} (not a hard fail)"
+                      )
+                      advisories += 1
+                  # External-pin dual-body advisory (monorepo must not also ship leaf)
+                  if "skill-craft" not in repo and name:
+                      print(
+                          f"NOTE {name}: external pin on {repo} — ensure "
+                          f"skill-craft has no skills/{name}/ (dual-body guard in skill-craft CI)"
+                      )
+                  print(f"OK   {name} version={pj_ver}")
+              except Exception as e:
+                  print(
+                      f"FAIL {name}: cannot fetch plugin.json at {pj_path}: {e}",
+                      file=sys.stderr,
+                  )
+                  fails += 1
+
           if fails:
+              print(f"pin-freshness: {fails} failure(s), {advisories} advisory(ies)", file=sys.stderr)
               sys.exit(1)
-          print("pin-freshness: all pins OK")
+          print(f"pin-freshness: all checks passed ({advisories} advisory(ies))")
           PY

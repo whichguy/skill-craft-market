@@ -1,47 +1,30 @@
 # Codex face — skill-craft-market
 
-## Recommended: skill-dir install from skill-craft
+**No second marketplace.json here.** Root catalog is Claude-format only; Codex consumes skills via **skill-dir**.
+
+## install skill (recommended)
 
 ```sh
 git clone https://github.com/whichguy/skill-craft.git
 cd skill-craft
-./install.sh --skill skill-interop --codex-only
+./install.sh --skill review-coverage --codex-only
+./install.sh --status --skill review-coverage
 ```
 
-Destination: `~/.codex/skills/skill-interop` → skill-craft `skills/skill-interop`.
+Destination: `~/.codex/skills/<leaf>` → skill-craft `skills/<leaf>`.
 
-## Plugin marketplace
+## install plugin
 
-Codex plugin CLIs (when used) take host-specific marketplace/plugin commands. Skill
-packages are not required to be packaged as Codex plugins; skill-dir install is the
-portable path.
+Lifecycle pilot only. Prefer skill-dir until proven. Full matrix: [docs/setup-matrix.md](../../docs/setup-matrix.md).
 
-Skill SoT: [whichguy/skill-craft](https://github.com/whichguy/skill-craft)  
-skill-dir path: `skills/skill-interop` (not the Claude pin path `plugins/skill-interop`).
+## register policy
 
-This face holds **docs only** (no skill prompt bodies).
-
-## Multi-skill monorepo
-
-skill-craft now ships multiple portable skills (skill-interop, c-plan, prompt-*,
-architect, plan-test, compare-prompts, lennox-s40, …). Skill-dir install:
-
-```sh
-cd skill-craft && ./install.sh          # all skills
-cd skill-craft && ./install.sh --skill architect
-```
-
-Claude plugin catalog: sibling marketplace pins under `plugins/<leaf>` @ release tags.
+Codex Stop contract: **plan-oversight** `register-hooks` → `~/.codex/hooks.json` — never this catalog.
 
 ## Standalone: lennox-s40
 
-Thermostat skill: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40). `cd ~/src/lennox-s40 && ./install.sh`.
-
-## devloop-run
-
-Setup/probe multi-host; full engine loops still default to Hermes transport.
+Thermostat body: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40).
 
 ```sh
-cd skill-craft && ./install.sh --skill devloop-run --codex-only   # or --codex-only
-bash ~/.codex/skills/devloop-run/scripts/devloop-run --setup
+cd ~/src/lennox-s40 && ./install.sh
 ```

@@ -4,7 +4,7 @@
     "name": "whichguy",
     "url": "https://github.com/whichguy"
   },
-  "description": "Multi-host marketplace adapters that pin skill-craft skills. Catalog only; skill SoT is whichguy/skill-craft.",
+  "description": "Claude-format plugin catalog pinning skill-craft (and allowed external) skill packages. Portable multi-host install uses skill-craft ./install.sh skill-dir \u2014 not this catalog alone. No hooks. Skill SoT: whichguy/skill-craft (except external pins e.g. lennox-s40).",
   "plugins": [
     {
       "name": "architect",
@@ -22,7 +22,7 @@
     },
     {
       "name": "c-plan",
-      "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
+      "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1\u20132 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
       "version": "0.1.0",
       "author": {
         "name": "whichguy"
@@ -148,7 +148,7 @@
     },
     {
       "name": "prompt-migrate",
-      "description": "TDD-based prompt migration — given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
+      "description": "TDD-based prompt migration \u2014 given a target agent/skill prompt and a remediation list from prompt-audit, writes failing tests first, then updates the prompt to make them pass, and commits both in a single atomic commit.",
       "version": "0.1.0",
       "author": {
         "name": "whichguy"
@@ -162,7 +162,7 @@
     },
     {
       "name": "prompt-refine",
-      "description": "Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.",
+      "description": "Full prompt-improvement workflow \u2014 runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify harness consistency. Use for any agent or skill prompt that needs structural repair.",
       "version": "0.1.0",
       "author": {
         "name": "whichguy"
@@ -190,7 +190,7 @@
     },
     {
       "name": "review-coverage",
-      "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, \"review-coverage on this plan\", residual×2 after ship, or ensure the plan has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality (use review-plan) or raw residual×2 engine mechanics alone (use review-converge under /goal).",
+      "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, \"review-coverage on this plan\", residual\u00d72 after ship, or ensure the plan has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality (use review-plan) or raw residual\u00d72 engine mechanics alone (use review-converge under /goal).",
       "version": "0.2.4",
       "author": {
         "name": "whichguy"

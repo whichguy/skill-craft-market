@@ -1,48 +1,30 @@
 # Grok face — skill-craft-market
 
-Grok does not use Claude-style `name@marketplace` plugin ids for skill packages.
+**No second marketplace.json here.** Root catalog is Claude-format only; Grok consumes skills via **skill-dir**.
 
-## Recommended: skill-dir install from skill-craft
+## install skill (recommended)
 
 ```sh
 git clone https://github.com/whichguy/skill-craft.git
 cd skill-craft
-./install.sh --skill skill-interop --grok-only
-# optional thin agent card:
-./install.sh --skill skill-interop --grok-only --agents
+./install.sh --skill review-coverage --grok-only   # or omit --skill for all
+./install.sh --status --skill review-coverage
 ```
 
-Destination: `~/.grok/skills/skill-interop` → skill-craft `skills/skill-interop`.
+Destination: `~/.grok/skills/<leaf>` → skill-craft `skills/<leaf>`.
 
-## Plugin marketplace
+## install plugin
 
-If installing a **plugin** (not a skill package) via Grok’s plugin CLI, use git URL /
-`user/repo` forms — not `name@marketplace`. Skill SoT remains
-[whichguy/skill-craft](https://github.com/whichguy/skill-craft).
+Lifecycle pilot only. Prefer skill-dir until host plugin install is proven. Full matrix: [docs/setup-matrix.md](../../docs/setup-matrix.md).
 
-This face holds **docs only** (no skill prompt bodies).
+## register policy
 
-## Multi-skill monorepo
-
-skill-craft now ships multiple portable skills (skill-interop, c-plan, prompt-*,
-architect, plan-test, compare-prompts, lennox-s40, …). Skill-dir install:
-
-```sh
-cd skill-craft && ./install.sh          # all skills
-cd skill-craft && ./install.sh --skill architect
-```
-
-Claude plugin catalog: sibling marketplace pins under `plugins/<leaf>` @ release tags.
+ExitPlanMode / residual hooks: **plan-oversight** `register-hooks` — never this catalog, never skill-craft `install.sh`.
 
 ## Standalone: lennox-s40
 
-Thermostat skill: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40). `cd ~/src/lennox-s40 && ./install.sh`.
-
-## devloop-run
-
-Setup/probe multi-host; full engine loops still default to Hermes transport.
+Thermostat body: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40).
 
 ```sh
-cd skill-craft && ./install.sh --skill devloop-run --grok-only   # or --codex-only
-bash ~/.grok/skills/devloop-run/scripts/devloop-run --setup
+cd ~/src/lennox-s40 && ./install.sh
 ```

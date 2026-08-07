@@ -12,17 +12,19 @@ skill-craft/                         # SoT
     prompts/ scripts/ references/
   plugins/skill-interop/             # Claude distribution view only
     .claude-plugin/plugin.json
-    skills/skill-interop → ../../skills/skill-interop
+    skills/skill-interop/  # materialized copy (not escaping symlink)
     agents/… (optional)
 
 skill-craft-market/                  # catalog / adapters
-  .claude-plugin/marketplace.json    # published Claude catalog
+  .claude-plugin/marketplace.json    # ONLY committed catalog
   faces/
-    claude/.claude-plugin/marketplace.json   # same pins (keep in sync)
+    claude/README.md                 # pointer to root catalog
     grok/README.md
     codex/README.md
     hermes/README.md
   docs/package-layout.md
+  docs/setup-matrix.md
+  docs/pin-policy.md
 ```
 
 ## Claude pin shape
@@ -41,8 +43,7 @@ Claude must pin the **plugin view**, not the bare skill leaf:
 }
 ```
 
-Until skill-craft publishes a release tag, `ref` stays `main`. Prefer tags (and optional
-`sha`) for production pins after the first release.
+Production pins use **git tags**. Advance a pin when that leaf’s content or package version changes at a released tag (see docs/pin-policy.md).
 
 **Do not** set `"path": "skills/skill-interop"` — Claude plugin validate requires
 `.claude-plugin/plugin.json` in the package root.
@@ -64,8 +65,8 @@ Use skill-craft `./install.sh --skill <leaf>`.
 
 1. Land the skill under `skill-craft/skills/<leaf>/`.
 2. Add Claude view `skill-craft/plugins/<leaf>/` (`plugin.json` + skill symlink).
-3. Add a pin entry to **both** root and `faces/claude` marketplace.json (`path: plugins/<leaf>`).
-4. Update Grok/Codex/Hermes face READMEs if install notes differ.
+3. Add a pin entry to root `.claude-plugin/marketplace.json` only (`path: plugins/<leaf>`).
+4. Update faces READMEs only if host install notes differ.
 5. Do **not** copy `SKILL.md` or prompts into this repo.
 
 ## Skill unit (agentskills.io)
@@ -73,3 +74,8 @@ Use skill-craft `./install.sh --skill <leaf>`.
 A skill is a directory with `SKILL.md` (+ optional tree). Hosts consume it via skill-dir
 symlinks (`install.sh`) or Claude marketplace adapters that reference the skill-craft
 **plugin** path.
+
+
+## External leaves
+
+Some catalog entries (e.g. **lennox-s40**) pin a **standalone** repo. skill-craft must **not** also ship `skills/<same-name>/`. Install skill-dir from the standalone clone’s `install.sh`.

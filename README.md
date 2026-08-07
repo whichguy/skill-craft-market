@@ -1,102 +1,77 @@
 # skill-craft-market
 
-**Multi-host marketplace adapters** that pin skills from
-[skill-craft](https://github.com/whichguy/skill-craft).
+**Claude-format plugin catalog** that pins packages from
+[skill-craft](https://github.com/whichguy/skill-craft) (and allowed external repos).
+**Catalog only** — does not vendor skill prompt bodies.
 
-This repo is a **catalog only**. It does **not** contain skill prompt bodies
-(`SKILL.md` SoT lives in skill-craft). Claude pins use the skill-craft
-**plugin view** (`plugins/<name>/`). Other hosts use skill-dir notes that
-point at `skills/<name>/`.
+**No hooks.** This marketplace never installs plan-oversight, ExitPlanMode soft_exit,
+or residual skill-fire. Those are **L-Policy** → [plan-oversight](https://github.com/whichguy/plan-oversight).
 
-## skill-craft vs skill-craft-market vs claude-craft
+## Three verbs (memorize)
 
-| Repo | Contains | Role |
-|------|----------|------|
-| **skill-craft** | `skills/<leaf>/…` + `plugins/<leaf>/` Claude view | Host-neutral skill source of truth |
-| **skill-craft-market** (this repo) | Host faces / pins / docs | Marketplace adapters only |
-| **claude-craft** | Claude Code plugins | Separate product marketplace |
+| Verb | Meaning | Tool |
+|------|---------|------|
+| **install skill** | skill-dir body on a host | skill-craft `./install.sh` |
+| **install plugin** | Claude/Codex/Grok plugin cache from this catalog | host `plugin install …@skill-craft-market` (when supported) |
+| **register policy** | ExitPlanMode / Stop hooks | plan-oversight `register-hooks` (not this repo) |
+
+Pick **one track per leaf** on a machine: plugin **or** skill-dir, not both (dev on `main` → skill-dir; consumers wanting pins → plugin).
+
+## Setup matrix
+
+See **[docs/setup-matrix.md](docs/setup-matrix.md)** for Claude / Grok / Codex / Hermes.
+
+### Quick answers
+
+| Want | Do |
+|------|-----|
+| Skills on Grok/Codex/Hermes | `git clone skill-craft && ./install.sh --skill <leaf>` |
+| Skills on Claude (dev) | same skill-dir **or** plugin — not both |
+| Skills on Claude (pinned release) | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
+| Suites (review-plan, wiki, …) | **claude-craft** marketplace — not this catalog |
+| ExitPlanMode residual fire | **plan-oversight** register — never this catalog, never `install.sh` |
+
+## Claude catalog
+
+```sh
+claude plugin marketplace add whichguy/skill-craft-market
+claude plugin marketplace update skill-craft-market
+claude plugin install review-coverage@skill-craft-market
+```
+
+Pin path is always skill-craft **`plugins/<leaf>`** (or external repo root for specials like lennox-s40), at a **git tag**.
+
+Canonical file: **`.claude-plugin/marketplace.json`** (only committed catalog).
+
+## Skill-dir (all hosts)
+
+```sh
+git clone https://github.com/whichguy/skill-craft.git
+cd skill-craft
+./install.sh --skill review-coverage   # all four hosts by default
+./install.sh --status --skill review-coverage
+```
+
+## External pin: lennox-s40
+
+Thermostat skill body lives in **[whichguy/lennox-s40](https://github.com/whichguy/lennox-s40)** (not skill-craft monorepo).
+
+```sh
+cd ~/src/lennox-s40 && ./install.sh    # skill-dir
+# Claude plugin still via this catalog (ref v0.2.1, path ".")
+```
+
+## Pin policy
+
+Normative release steps: skill-craft [`docs/skill-release-checklist.md`](https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.md).  
+Market-side notes: [docs/pin-policy.md](docs/pin-policy.md).
+
+**Do not bulk-retarget** umbrella tags when leaf content is unchanged vs tip.
 
 ## Faces
 
-```text
-faces/
-  claude/     Claude Code marketplace.json (git-subdir pins → skill-craft plugins/)
-  grok/       Grok install notes (skill-dir → skills/)
-  codex/      Codex install notes (skill-dir → skills/)
-  hermes/     Hermes skillhub notes (skill-dir → skills/)
-```
+Host notes under `faces/{grok,codex,hermes}/` point at the setup matrix. No second marketplace.json under faces.
 
-Root `.claude-plugin/marketplace.json` is the published Claude catalog (kept in
-sync with `faces/claude/`).
-
-### Claude
-
-**Preferred source:** GitHub marketplace `whichguy/skill-craft-market` (not a local path clone).
-
-
-```sh
-# Git marketplace (preferred after publish)
-claude plugin marketplace add whichguy/skill-craft-market
-claude plugin marketplace update skill-craft-market
-claude plugin install skill-interop@skill-craft-market
-# also: prompt-audit prompt-align prompt-migrate prompt-refine c-plan
-claude plugin list --json
-
-# Local clone of this repo (root has .claude-plugin/marketplace.json)
-claude plugin marketplace add /path/to/skill-craft-market
-```
-
-**Pin path must be the Claude plugin view**, not the bare skill leaf:
-
-```text
-source: {
-  source: git-subdir,
-  url: https://github.com/whichguy/skill-craft.git,
-  path: plugins/skill-interop,   # NOT skills/skill-interop
-  ref: main                      # prefer a release tag after first cut
-}
-```
-
-Bare `skills/<name>` fails Claude plugin validate (missing `plugin.json`).
-
-If `CLAUDE_CONFIG_DIR` is set (e.g. c-thru), installs go to that config tree —
-use `env -u CLAUDE_CONFIG_DIR` for the persistent `~/.claude` smoke path.
-
-### Grok / Codex / Hermes
-
-See `faces/<host>/README.md`. Skill-dir side-load remains:
-
-```sh
-# From a skill-craft clone
-./install.sh --skill skill-interop
-```
-
-## Package layout
+## Layout
 
 See [docs/package-layout.md](docs/package-layout.md).
-
-## Install lifecycle (operator)
-
-| Mode | Action |
-|------|--------|
-| **Dev skill-dir** | Clone skill-craft → `./install.sh --skill <name> [--agents] [--relink]` |
-| **Claude plugin** | `claude plugin install <name>@skill-craft-market` |
-| **Upgrade skill-dir** | `git pull` in skill-craft + `./install.sh … --relink` if links wrong |
-| **Upgrade plugin** | `claude plugin update <name>` / marketplace update |
-| **Uninstall skill-dir** | Remove host symlink under `~/.{claude,grok,codex}/skills/<name>` |
-| **Uninstall plugin** | `claude plugin uninstall <name>@skill-craft-market` |
-
-## License
-
-Catalog metadata is dual-licensed with skill-craft intent (MIT-friendly). Skill
-packages themselves are licensed in skill-craft.
-
-
-## Dual-track install
-
-| Track | Who | How |
-|-------|-----|-----|
-| **Skill-dir (all hosts)** | Dev / multi-host | Clone skill-craft → `./install.sh [--skill <leaf>] [--relink]` |
-| **Claude plugin** | Claude Code only | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
-
-Skill-dir and plugin installs do **not** auto-sync. After editing skill bodies in skill-craft, run `./scripts/sync-plugin-views.sh` before tagging so Claude pins get the materialised tree.

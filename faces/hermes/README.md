@@ -1,41 +1,32 @@
 # Hermes face — skill-craft-market
 
-Hermes uses skillhub / software-development skill-dir layout (not Claude plugin marketplaces).
+**No second marketplace.json here.** Hermes is skill-dir only (skillhub / software-development layout).
 
-## Recommended: skill-dir install from skill-craft
+## install skill (only path)
 
 ```sh
 git clone https://github.com/whichguy/skill-craft.git
 cd skill-craft
-./install.sh --skill skill-interop --hermes-only
+./install.sh --skill review-coverage --hermes-only
+./install.sh --status --skill review-coverage
 ```
 
-Destination (host):
+Host path: `~/.hermes/skills/software-development/<leaf>`  
+Container (when `~/.hermes` is bind-mounted at `/opt/data`):  
+`/opt/data/skills/software-development/<leaf>`
 
-`~/.hermes/skills/software-development/skill-interop`
+## install plugin
 
-When `~/.hermes` is bind-mounted into the Hermes container at `/opt/data`, the container path is:
+N/A for Hermes.
 
-`/opt/data/skills/software-development/skill-interop`
+## register policy
 
-Skill SoT: [whichguy/skill-craft](https://github.com/whichguy/skill-craft)  
-skill-dir path: `skills/skill-interop` (not the Claude pin path `plugins/skill-interop`).
-
-This face holds **docs only** (no skill prompt bodies). Hermes is not covered by the
-skill-interop marketplace facade CLI (skill-dir only).
-
-## Multi-skill monorepo
-
-skill-craft now ships multiple portable skills (skill-interop, c-plan, prompt-*,
-architect, plan-test, compare-prompts, lennox-s40, …). Skill-dir install:
-
-```sh
-cd skill-craft && ./install.sh          # all skills
-cd skill-craft && ./install.sh --skill architect
-```
-
-Claude plugin catalog: sibling marketplace pins under `plugins/<leaf>` @ release tags.
+N/A — plan-oversight harness adapters target Claude/Grok/Codex.
 
 ## Standalone: lennox-s40
 
-Thermostat skill: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40). `cd ~/src/lennox-s40 && ./install.sh`.
+Thermostat body: [whichguy/lennox-s40](https://github.com/whichguy/lennox-s40).
+
+```sh
+cd ~/src/lennox-s40 && ./install.sh
+```
