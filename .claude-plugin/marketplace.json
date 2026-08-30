@@ -21,6 +21,20 @@
       }
     },
     {
+      "name": "backchain",
+      "description": "Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete plans, or scheduler-ready step graphs. Turns a natural-language coding request into a forward draft then backward-chaining enriched DAG with explicit unresolved risks.",
+      "version": "0.3.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/backchain.git",
+        "path": ".",
+        "ref": "v0.3.1"
+      }
+    },
+    {
       "name": "c-plan",
       "description": "Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1\u20132 high-value clarification questions, replan, or stop. Use when the best response depends on hidden intent, audience, scope, constraints, risk, output format, or desired depth.",
       "version": "0.1.0",
