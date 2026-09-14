@@ -1,6 +1,9 @@
 # Grok face — skill-craft-market
 
-**No second marketplace.json here.** Root catalog is Claude-format only; Grok consumes skills via **skill-dir**.
+**No second marketplace.json here.** For native Grok plugins, use the generated
+`.grok-plugin/marketplace.json` in the **skill-craft source repository**. It points
+to the 18 existing `plugins/<leaf>` packages using same-repository local sources.
+This sibling repo retains the Claude/Codex release pins.
 
 ## install skill (recommended)
 
@@ -15,7 +18,17 @@ Destination: `~/.grok/skills/<leaf>` → skill-craft `skills/<leaf>`.
 
 ## install plugin
 
-Lifecycle pilot only. Prefer skill-dir until host plugin install is proven. Full matrix: [docs/setup-matrix.md](../../docs/setup-matrix.md).
+For local development:
+
+```sh
+grok plugin marketplace add /absolute/path/to/skill-craft
+grok plugin list --available --json
+# Review the selected package; use plugin mode only if it is not in skill-dir:
+grok plugin install shiploop --trust
+```
+
+After publishing the source adapter, consumers can register `whichguy/skill-craft`.
+Full matrix: [docs/setup-matrix.md](../../docs/setup-matrix.md).
 
 ## register policy
 
