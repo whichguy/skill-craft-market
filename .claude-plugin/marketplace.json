@@ -246,16 +246,16 @@
     },
     {
       "name": "improve",
-      "description": "Review repository changes using seven full Git commit messages, meaningful tests, learning-oriented commits, and two consecutive trivial-only reviews.",
-      "version": "0.3.0-rc.3",
+      "description": "Review and improve a repository candidate with seven-message history, meaningful checks, scoped commits and two consecutive qualifying reviews. Bundles Until Loop; release candidate.",
+      "version": "0.1.0-rc.1",
       "author": {
         "name": "whichguy"
       },
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/whichguy/until-loop.git",
+        "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve",
-        "ref": "v0.3.0-rc.3"
+        "ref": "improve-v0.1.0-rc.1"
       },
       "policy": {
         "installation": "AVAILABLE",
