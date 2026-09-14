@@ -243,6 +243,25 @@
         "path": "plugins/skill-interop",
         "ref": "v0.3.0"
       }
+    },
+    {
+      "name": "improve",
+      "description": "Review and improve a repository candidate with seven-message history, meaningful checks, scoped commits and two consecutive qualifying reviews. Bundles Until Loop; release candidate.",
+      "version": "0.1.0-rc.1",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/improve",
+        "ref": "improve-v0.1.0-rc.1"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }
