@@ -52,6 +52,29 @@ cd skill-craft
 ./install.sh --status --skill review-coverage
 ```
 
+## External release packages: Until Loop and Improve
+
+[`until-loop`](https://github.com/whichguy/until-loop) and `improve` are two
+standalone packages from the external Until Loop repository, each pinned to
+`v0.3.0-rc.3`. Improve bundles its compatible Until Loop runtime, so it does
+not require a separate Until Loop installation.
+
+```sh
+# Codex: add the marketplace once, then choose a package.
+codex plugin marketplace add whichguy/skill-craft-market
+codex plugin marketplace upgrade skill-craft-market
+codex plugin add until-loop@skill-craft-market
+# Or:
+codex plugin add improve@skill-craft-market
+
+# Claude Code: add the marketplace once, then choose a package.
+claude plugin marketplace add whichguy/skill-craft-market
+claude plugin marketplace update skill-craft-market
+claude plugin install until-loop@skill-craft-market
+# Or:
+claude plugin install improve@skill-craft-market
+```
+
 ## External pin: lennox-s40
 
 Thermostat skill body lives in **[whichguy/lennox-s40](https://github.com/whichguy/lennox-s40)** (not skill-craft monorepo).
@@ -78,12 +101,12 @@ See [docs/package-layout.md](docs/package-layout.md).
 
 ## Improve release candidate
 
-`improve@skill-craft-market` publishes the standalone Improve workflow from
-`skill-craft/plugins/improve`, pinned to `improve-v0.1.0-rc.1`. It includes the
-compatible Until Loop runtime, so installing this plugin does not require a
-separate Until Loop checkout. The package remains a release candidate; catalog
-discovery and isolated runtime tests do not establish full execution on every
-host.
+`improve@skill-craft-market` now resolves to `whichguy/until-loop`, pinned to
+`v0.3.0-rc.3`. This supersedes the initial skill-craft catalog pin
+`improve-v0.1.0-rc.1` without changing the installable plugin name. The previous
+release remains available in Git history. Improve includes its compatible Until
+Loop runtime; catalog discovery and isolated runtime tests do not establish full
+execution on every host.
 
 ```sh
 codex plugin marketplace upgrade skill-craft-market
@@ -99,6 +122,6 @@ plugin; do not install a duplicate merely to update the catalog. These commands
 are for hosts where the marketplace is already registered.
 
 Start with `Dry-run $improve on these changes without writing files.` See the
-[Improve guide](https://github.com/whichguy/skill-craft/blob/improve-v0.1.0-rc.1/skills/improve/README.md)
+[Improve guide](https://github.com/whichguy/until-loop/blob/v0.3.0-rc.3/examples/improve/README.md)
 for scope, commit overrides, completion conditions and runtime boundaries.
 The ClaudeCraft skill with the same name is a separate implementation.

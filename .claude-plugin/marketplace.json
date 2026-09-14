@@ -246,16 +246,35 @@
     },
     {
       "name": "improve",
-      "description": "Review and improve a repository candidate with seven-message history, meaningful checks, scoped commits and two consecutive qualifying reviews. Bundles Until Loop; release candidate.",
-      "version": "0.1.0-rc.1",
+      "description": "Review repository changes using seven full Git commit messages, meaningful tests, learning-oriented commits, and two consecutive trivial-only reviews.",
+      "version": "0.3.0-rc.3",
       "author": {
         "name": "whichguy"
       },
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/whichguy/skill-craft.git",
+        "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/improve",
-        "ref": "improve-v0.1.0-rc.1"
+        "ref": "v0.3.0-rc.3"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "until-loop",
+      "description": "Interpret natural-language work and evidence-based exit conditions with a durable state machine and LLM decision rubric.",
+      "version": "0.3.0-rc.3",
+      "author": {
+        "name": "whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/until-loop.git",
+        "path": "plugins/until-loop",
+        "ref": "v0.3.0-rc.3"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -263,5 +282,8 @@
       },
       "category": "Productivity"
     }
-  ]
+  ],
+  "interface": {
+    "displayName": "Skill Craft"
+  }
 }
