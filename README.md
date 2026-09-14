@@ -1,6 +1,6 @@
 # skill-craft-market
 
-**Claude-format plugin catalog** that pins packages from
+**Claude-compatible plugin catalog for Claude Code and Codex** that pins packages from
 [skill-craft](https://github.com/whichguy/skill-craft) (and allowed external repos).
 **Catalog only** — does not vendor skill prompt bodies.
 
@@ -12,24 +12,55 @@ or residual skill-fire. Those are **L-Policy** → [plan-oversight](https://gith
 | Verb | Meaning | Tool |
 |------|---------|------|
 | **install skill** | skill-dir body on a host | skill-craft `./install.sh` |
-| **install plugin** | Claude/Codex/Grok plugin cache from this catalog | host `plugin install …@skill-craft-market` (when supported) |
+| **install plugin** | Host plugin cache from its supported catalog | Claude `plugin install`, Codex `plugin add`; Grok/Cursor use source-repo adapters |
 | **register policy** | ExitPlanMode / Stop hooks | plan-oversight `register-hooks` (not this repo) |
 
 Pick **one track per leaf** on a machine: plugin **or** skill-dir, not both (dev on `main` → skill-dir; consumers wanting pins → plugin).
 
 ## Setup matrix
 
-See **[docs/setup-matrix.md](docs/setup-matrix.md)** for Claude / Grok / Codex / Hermes.
+See **[docs/setup-matrix.md](docs/setup-matrix.md)** for Grok / Claude / Cursor / Codex / Hermes.
+The source repo's [distribution guide](https://github.com/whichguy/skill-craft/blob/main/docs/distribution.md)
+describes both personal installs and marketplace publication.
 
 ### Quick answers
 
 | Want | Do |
 |------|-----|
-| Skills on Grok/Codex/Hermes | `git clone skill-craft && ./install.sh --skill <leaf>` |
+| Skills on Grok/Claude/Cursor/Codex (development) | In a skill-craft clone: `./install.sh --grok-only --claude-only --cursor-only --codex-only` |
 | Skills on Claude (dev) | same skill-dir **or** plugin — not both |
 | Skills on Claude (pinned release) | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
+| Native Grok/Cursor marketplace | Source repo `whichguy/skill-craft`, using its generated native indexes; see host notes |
 | Suites (review-plan, wiki, …) | **claude-craft** marketplace — not this catalog |
 | ExitPlanMode residual fire | **plan-oversight** register — never this catalog, never `install.sh` |
+
+## Codex marketplace
+
+```sh
+codex plugin marketplace add whichguy/skill-craft-market
+codex plugin list --marketplace skill-craft-market --available --json
+# Install only leaves that are not already installed through skill-dir:
+codex plugin add shiploop@skill-craft-market
+```
+
+For a local checkout, register its root instead:
+
+```sh
+codex plugin marketplace add /absolute/path/to/skill-craft-market
+```
+
+In the Codex app, open Plugins and select **Skill Craft** as the marketplace.
+Start a new thread after installing a plugin to load its skills. Marketplace
+registration makes packages discoverable; it does not install every package.
+Use `codex plugin marketplace upgrade skill-craft-market` to refresh a Git
+marketplace. A local marketplace reads the checkout. Existing skill-dir
+installations remain independent; do not install a duplicate plugin for a leaf.
+
+The same `.claude-plugin/marketplace.json` is supported by Codex; no second
+catalog is needed. Root-repository plugins use `source: "url"`; subdirectory
+plugins use `source: "git-subdir"` with a non-root path. Codex omits root-dot
+`git-subdir` entries. Codex presentation and policy fields are ignored by Claude.
+See [official marketplace documentation](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
 
 ## Claude catalog
 
@@ -39,7 +70,7 @@ claude plugin marketplace update skill-craft-market
 claude plugin install review-coverage@skill-craft-market
 ```
 
-Pin path is always skill-craft **`plugins/<leaf>`** (or external repo root for specials like lennox-s40), at a **git tag**.
+Pin path is always skill-craft **`plugins/<leaf>`** (or external repo root for specials like lennox-s40), at a **full verified commit SHA**, optionally labeled with a release tag or branch.
 
 Canonical file: **`.claude-plugin/marketplace.json`** (only committed catalog).
 
@@ -48,7 +79,7 @@ Canonical file: **`.claude-plugin/marketplace.json`** (only committed catalog).
 ```sh
 git clone https://github.com/whichguy/skill-craft.git
 cd skill-craft
-./install.sh --skill review-coverage   # all four hosts by default
+./install.sh --skill review-coverage   # all five hosts by default, including Cursor and Hermes
 ./install.sh --status --skill review-coverage
 ```
 
@@ -71,16 +102,27 @@ claude plugin marketplace update skill-craft-market
 claude plugin install until-loop@skill-craft-market
 ```
 
+## Private source: backchain
+
+Backchain is a private repository. Its marketplace entry requires existing GitHub
+read access; listing the entry does not grant access. CI access requirements are
+documented in [pin policy](docs/pin-policy.md#private-source-access).
+
 ## External pin: lennox-s40
 
 Thermostat skill body lives in **[whichguy/lennox-s40](https://github.com/whichguy/lennox-s40)** (not skill-craft monorepo).
 
 ```sh
 cd ~/src/lennox-s40 && ./install.sh    # skill-dir
-# Claude plugin still via this catalog (ref v0.2.1, path ".")
+# Claude/Codex plugin via this catalog (ref v0.2.1, standalone repository URL)
 ```
 
 ## Pin policy
+
+Standalone **Until Loop** is also available as `until-loop@skill-craft-market`
+from [whichguy/until-loop](https://github.com/whichguy/until-loop), pinned at
+`v0.3.0-rc.3`. **Improve** retains its canonical skill-craft source and its own
+release pin; installing Until Loop does not replace Improve.
 
 Normative release steps: skill-craft [`docs/skill-release-checklist.md`](https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.md).  
 Market-side notes: [docs/pin-policy.md](docs/pin-policy.md).
@@ -89,7 +131,9 @@ Market-side notes: [docs/pin-policy.md](docs/pin-policy.md).
 
 ## Faces
 
-Host notes under `faces/{grok,codex,hermes}/` point at the setup matrix. No second marketplace.json under faces.
+Host notes under `faces/{claude,grok,cursor,codex,hermes}/` point at the setup matrix.
+No second marketplace.json under faces. Grok/Cursor indexes live in the source
+repo and reference its existing packages; this repo retains only release pins.
 
 ## Layout
 

@@ -4,7 +4,7 @@
     "name": "whichguy",
     "url": "https://github.com/whichguy"
   },
-  "description": "Claude-format plugin catalog pinning skill-craft (and allowed external) skill packages. Portable multi-host install uses skill-craft ./install.sh skill-dir \u2014 not this catalog alone. No hooks. Skill SoT: whichguy/skill-craft (except external pins e.g. lennox-s40).",
+  "description": "Claude-compatible plugin catalog for Claude Code and Codex, pinning skill-craft and allowed external skill packages. Portable skill-dir installation uses skill-craft ./install.sh. No hooks. Skill source of truth: whichguy/skill-craft, except external pins.",
   "plugins": [
     {
       "name": "architect",
@@ -17,8 +17,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/architect",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "backchain",
@@ -28,11 +34,16 @@
         "name": "whichguy"
       },
       "source": {
-        "source": "git-subdir",
+        "source": "url",
         "url": "https://github.com/whichguy/backchain.git",
-        "path": ".",
-        "ref": "v0.3.1"
-      }
+        "ref": "v0.3.1",
+        "sha": "28f4c093a4f1f2cb878bf04219acbb380be77a1f"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "c-plan",
@@ -45,8 +56,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/c-plan",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "compare-prompts",
@@ -59,8 +76,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/compare-prompts",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "derive-questions",
@@ -73,22 +96,35 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/derive-questions",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
-      "name": "devloop-run",
-      "description": "Portable card for the devloop engine (machine-verifiable build/debug). Install on Claude/Grok/Codex; run scripts/devloop-run --setup to bootstrap a host-local engine under ~/.local/share/devloop (pin+sha verified). Setup/probe are multi-host; full autonomous loops still default to Hermes transport.",
-      "version": "0.3.0",
+      "name": "devloop",
+      "description": "DevLoop (default): invoke the autonomous engine for a machine-verifiable build or debug goal. Use when the user says devloop, DevLoop, /devloop, or wants an isolated fail-closed build with executable tests. Thin shim: resolve or bootstrap the engine, then exec scripts/devloop-run. Runtime hosts: Grok and Hermes. Claude/Codex/Cursor: discovery and bootstrap only (transport TBD). NOT the demoted offline skill evidence-gates. NOT host-agent DEFINE/PROVE/BUILD.",
+      "version": "0.5.4",
       "author": {
-        "name": "whichguy"
+        "name": "whichguy",
+        "url": "https://github.com/whichguy"
       },
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
-        "path": "plugins/devloop-run",
-        "ref": "devloop-run-v0.3.0"
-      }
+        "path": "plugins/devloop",
+        "ref": "main",
+        "sha": "1d46133c3ac7232b00690d9d8ecdfcd932c6592b"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "improve-system-prompt",
@@ -101,8 +137,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve-system-prompt",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "lennox-s40",
@@ -112,11 +154,16 @@
         "name": "whichguy"
       },
       "source": {
-        "source": "git-subdir",
+        "source": "url",
         "url": "https://github.com/whichguy/lennox-s40.git",
-        "path": ".",
-        "ref": "v0.2.1"
-      }
+        "ref": "v0.2.1",
+        "sha": "25aedea84f49704021c6d7751003455476ea3bfa"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "plan-test",
@@ -129,8 +176,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/plan-test",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "prompt-align",
@@ -143,8 +196,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-align",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "prompt-audit",
@@ -157,8 +216,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-audit",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "prompt-migrate",
@@ -171,8 +236,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-migrate",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "prompt-refine",
@@ -185,8 +256,14 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-refine",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "question-bench",
@@ -199,22 +276,35 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/question-bench",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "review-coverage",
       "description": "Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, \"review-coverage on this plan\", residual\u00d72 after ship, or ensure the plan has a /goal-ready ## Review Coverage section. Not for pre-exit plan quality (use review-plan) or raw residual\u00d72 engine mechanics alone (use review-converge under /goal).",
       "version": "0.2.4",
       "author": {
-        "name": "whichguy"
+        "name": "whichguy",
+        "url": "https://github.com/whichguy"
       },
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/review-coverage",
-        "ref": "v0.3.3"
-      }
+        "ref": "main",
+        "sha": "1d46133c3ac7232b00690d9d8ecdfcd932c6592b"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "review-fix-bench",
@@ -227,22 +317,77 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/review-fix-bench",
-        "ref": "v0.3.0"
-      }
+        "ref": "v0.3.0",
+        "sha": "c1d91a808d982623b813b2849f0535a4a4316b19"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "skill-interop",
       "description": "Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill layout, review skill for interop, or install across hosts. Covers prompt-first design, host matrix, anti-patterns (divergent copies, silent mode fallback, abs symlinks), and script-backed CLI contracts.",
       "version": "0.2.0",
       "author": {
-        "name": "whichguy"
+        "name": "Backchain",
+        "url": "https://github.com/whichguy"
       },
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/skill-interop",
-        "ref": "v0.3.0"
-      }
+        "ref": "main",
+        "sha": "1d46133c3ac7232b00690d9d8ecdfcd932c6592b"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "evidence-gates",
+      "description": "Optional offline evidence gates (freeze/prove/stop with guard digests) for machine-checkable red\u2192green contracts without the autonomous engine. Use when the user says evidence-gates, offline evidence gates, freeze prove stop, or host-native verify gates. NOT the autonomous engine product.",
+      "version": "0.2.1",
+      "author": {
+        "name": "whichguy",
+        "url": "https://github.com/whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/evidence-gates",
+        "ref": "main",
+        "sha": "1d46133c3ac7232b00690d9d8ecdfcd932c6592b"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "shiploop",
+      "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
+      "version": "0.9.0",
+      "author": {
+        "name": "whichguy",
+        "url": "https://github.com/whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/shiploop",
+        "ref": "main",
+        "sha": "1d46133c3ac7232b00690d9d8ecdfcd932c6592b"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     },
     {
       "name": "improve",
@@ -255,7 +400,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve",
-        "ref": "improve-v0.1.0-rc.1"
+        "ref": "improve-v0.1.0-rc.1",
+        "sha": "d8b8432beb6d3cef26e4402a80f8e778f64f129d"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -274,7 +420,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
-        "ref": "v0.3.0-rc.3"
+        "ref": "v0.3.0-rc.3",
+        "sha": "978f2ce7fad9f446010f09e69066aff2b05feab6"
       },
       "policy": {
         "installation": "AVAILABLE",

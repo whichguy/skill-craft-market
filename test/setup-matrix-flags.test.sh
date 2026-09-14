@@ -10,9 +10,10 @@ fail() { printf 'setup-matrix-flags.test.sh: FAIL %s\n' "$*" >&2; exit 1; }
 rg -q 'Claude' "$matrix" || fail "matrix missing Claude"
 rg -q 'Grok' "$matrix" || fail "matrix missing Grok"
 rg -q 'Codex' "$matrix" || fail "matrix missing Codex"
+rg -q 'Cursor' "$matrix" || fail "matrix missing Cursor"
 rg -q 'Hermes' "$matrix" || fail "matrix missing Hermes"
-rg -q 'install skill' "$matrix" || fail "matrix missing install skill"
-rg -q 'install plugin' "$matrix" || fail "matrix missing install plugin"
+rg -qi 'install skill' "$matrix" || fail "matrix missing install skill"
+rg -qi 'install plugin' "$matrix" || fail "matrix missing install plugin"
 rg -q 'register policy|plan-oversight' "$matrix" || fail "matrix missing policy"
 
 # Optional sibling skill-craft: assert host flags appear in install.sh --help
@@ -30,11 +31,11 @@ done
 
 if [[ -n "$install_sh" ]]; then
   help_out="$("$install_sh" --help 2>&1 || true)"
-  for flag in --claude-only --grok-only --codex-only --hermes-only --status; do
+  for flag in --claude-only --grok-only --codex-only --hermes-only --cursor-only --status; do
     printf '%s\n' "$help_out" | grep -q -- "$flag" || fail "install.sh --help missing $flag"
   done
   # matrix documents these flag forms
-  for flag in --claude-only --grok-only --codex-only --hermes-only; do
+  for flag in --claude-only --grok-only --codex-only --hermes-only --cursor-only; do
     rg -q -- "$flag" "$matrix" || fail "matrix missing $flag"
   done
   printf 'setup-matrix-flags.test.sh: sibling install.sh OK (%s)\n' "$install_sh"
