@@ -23,6 +23,39 @@ from urllib.parse import quote, urlparse
 SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 FRONTMATTER_FIELD = re.compile(r"^([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 GITHUB_API = "https://api.github.com"
+SCRIPT_SUFFIX_INTERPRETERS = {
+    ".py": "python3",
+    ".sh": "bash",
+    ".js": "node",
+    ".cjs": "node",
+    ".mjs": "node",
+}
+CODEX_INTERFACE_TEXT_FIELDS = (
+    "displayName",
+    "shortDescription",
+    "longDescription",
+    "developerName",
+    "category",
+)
+
+# Immutable native package entrypoints for this marketplace family. This map
+# is intentionally local to the pin verifier: validating a historical SHA must
+# never depend on whatever happens to be in a current source checkout. Update
+# it only with an intentional native package contract/catalog transition.
+NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
+    "devloop": {"scripts/devloop-run": "bash"},
+    "evidence-gates": {"scripts/evidence-gates": "python3"},
+    "improve": {
+        "runtime/until-loop/scripts/until-loop": "python3",
+        "scripts/capture_evidence.py": "python3",
+    },
+    "review-coverage": {"scripts/review-coverage": "python3"},
+    "shiploop": {"scripts/shiploop": "python3"},
+    "skill-interop": {
+        "scripts/marketplace-run.sh": "bash",
+        "scripts/scaffold-skill.sh": "bash",
+    },
+}
 
 
 def is_text(value: Any) -> bool:
@@ -70,6 +103,10 @@ def compare_url(repo: str, sha: str, ref: str) -> str:
     return f"{GITHUB_API}/repos/{repo}/compare/{quote(sha, safe='')}...{quote(ref, safe='')}"
 
 
+def tree_url(repo: str, sha: str) -> str:
+    return f"{GITHUB_API}/repos/{repo}/git/trees/{quote(sha, safe='')}?recursive=1"
+
+
 class GitHubTransport:
     def __init__(self, token: str, timeout: int) -> None:
         self.token = token
@@ -100,6 +137,121 @@ def fetch_file(transport: Any, repo: str, path: str, sha: str) -> str:
         return base64.b64decode(payload["content"]).decode("utf-8")
     except (UnicodeDecodeError, ValueError) as exc:
         raise ValueError(f"invalid base64 UTF-8 content: {exc}") from exc
+
+
+def script_interpreter(path: str, source: str) -> str | None:
+    """Infer a supported interpreter from a conventional suffix or shebang."""
+    suffix = Path(path).suffix
+    if suffix in SCRIPT_SUFFIX_INTERPRETERS:
+        return SCRIPT_SUFFIX_INTERPRETERS[suffix]
+    first_line = source.splitlines()[0] if source else ""
+    if not first_line.startswith("#!"):
+        return None
+    command = first_line[2:].strip().split()
+    if not command:
+        return None
+    interpreter = Path(command[0]).name
+    if interpreter == "env":
+        command = command[1:]
+        if command[:1] == ["-S"]:
+            command = command[1:]
+        if not command:
+            return None
+        interpreter = Path(command[0]).name
+    if re.fullmatch(r"python(?:3(?:\.\d+)?)?", interpreter):
+        return "python3"
+    if interpreter in ("bash", "sh"):
+        return "bash"
+    if interpreter == "node":
+        return "node"
+    return None
+
+
+def remote_script_problem(
+    transport: Any,
+    repo: str,
+    sha: str,
+    prefix: str,
+    files: dict[str, dict[str, Any]],
+    relative: str,
+    expected: str | None,
+) -> str | None:
+    item = files.get(relative)
+    if not isinstance(item, dict) or item.get("type") != "blob" or item.get("mode") not in ("100644", "100755"):
+        return "is missing or not a regular file"
+    try:
+        source = fetch_file(transport, repo, prefix + relative, sha)
+    except Exception as exc:
+        return f"is unreadable: {exc}"
+    actual = script_interpreter(relative, source)
+    if actual is None:
+        return "is not a recognized script (expected a supported extension or shebang)"
+    if expected is not None and actual != expected:
+        return f"expected {expected}, found {actual}"
+    # A declared native entrypoint is invoked through its mapped interpreter,
+    # so it need not be executable. The fallback accepts an extensionless
+    # shebang only as a direct command and therefore requires mode 100755.
+    if expected is None and not Path(relative).suffix and item["mode"] != "100755":
+        return "is an extensionless shebang command but is not executable"
+    return None
+
+
+def validate_script_payload(
+    transport: Any,
+    repo: str,
+    sha: str,
+    prefix: str,
+    name: str,
+    skill_body: str,
+    files: dict[str, dict[str, Any]],
+) -> None:
+    """Require actual invokable bundled helpers for a script-backed skill."""
+    kind = re.search(
+        r"^\s+kind:\s*(script-backed|mixed)\s*$",
+        skill_body.split("\n---\n", 1)[0],
+        re.M,
+    )
+    if kind is None:
+        return
+    declared = NATIVE_SCRIPT_ENTRYPOINTS.get(name) if repo.casefold() == "whichguy/skill-craft" else None
+    if declared is not None:
+        for relative, expected in declared.items():
+            problem = remote_script_problem(
+                transport, repo, sha, prefix, files, f"skills/{name}/{relative}", expected
+            )
+            if problem:
+                raise ValueError(f"{kind[1]} declared entrypoint {relative} {problem}")
+        return
+
+    scripts_prefix = f"skills/{name}/scripts/"
+    candidates = sorted(path for path in files if path.startswith(scripts_prefix))
+    for relative in candidates:
+        problem = remote_script_problem(transport, repo, sha, prefix, files, relative, None)
+        if problem is None:
+            return
+        if problem.endswith("but is not executable"):
+            raise ValueError(f"{kind[1]} script candidate {relative} {problem}")
+    raise ValueError(f"{kind[1]} package has no runnable bundled script entrypoint")
+
+
+def validate_codex_interface(codex: dict[str, Any]) -> None:
+    interface = codex.get("interface")
+    if not isinstance(interface, dict):
+        raise ValueError("Codex interface must be an object")
+    for field in CODEX_INTERFACE_TEXT_FIELDS:
+        value = interface.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"Codex interface {field} must be a non-empty string")
+    capabilities = interface.get("capabilities")
+    if not isinstance(capabilities, list) or not capabilities or not all(
+        isinstance(value, str) and value.strip() for value in capabilities
+    ):
+        raise ValueError("Codex interface capabilities must be a non-empty string array")
+    prompts = interface.get("defaultPrompt")
+    if not isinstance(prompts, list) or not prompts or len(prompts) > 3 or not all(
+        isinstance(value, str) and value.strip() and len(value) <= 128 for value in prompts
+    ):
+        raise ValueError("Codex interface defaultPrompt must contain one to three short strings")
 
 
 def parse_frontmatter(text: str) -> dict[str, str] | None:
@@ -164,12 +316,68 @@ def advertised_skill_path(package_root: str, manifest: dict[str, Any], name: str
     return f"{prefix}skills/{manifest_name}/SKILL.md"
 
 
+def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
+                   manifest: dict[str, Any], skill_body: str) -> None:
+    """Release-only gate for the complete pinned tree; never executes its code.
+
+    Kept opt-in while old released pins are being migrated. A passing legacy
+    manifest/body check is not represented as passing this stronger contract.
+    """
+    payload = transport.get_json(tree_url(repo, sha))
+    if not isinstance(payload, dict) or payload.get("truncated") is not False:
+        raise ValueError("GitHub tree must be complete (truncated=false)")
+    tree = payload.get("tree")
+    if not isinstance(tree, list):
+        raise ValueError("GitHub tree response has no tree array")
+    prefix = f"{package_root}/" if package_root else ""
+    files = {}
+    for item in tree:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+            raise ValueError("malformed GitHub tree entry")
+        path = item["path"]
+        if not path.startswith(prefix):
+            continue
+        relative = path[len(prefix):]
+        if not valid_subdir(relative):
+            raise ValueError(f"unsafe payload path {relative!r}")
+        if item.get("mode") in ("120000", "160000"):
+            raise ValueError(f"payload must materialize symlink/submodule: {relative}")
+        if item.get("type") == "blob":
+            files[relative] = item
+    name = manifest["name"]
+    required = ["LICENSE", "README.md", ".claude-plugin/plugin.json", f"skills/{name}/SKILL.md"]
+    native = repo.casefold() == "whichguy/skill-craft"
+    if native:
+        required.append(".codex-plugin/plugin.json")
+    for path in required:
+        if path not in files:
+            raise ValueError(f"missing packaged {path}")
+    for path in ("LICENSE", "README.md"):
+        if not fetch_file(transport, repo, prefix + path, sha).strip():
+            raise ValueError(f"empty packaged {path}")
+    for path in files:
+        if path.endswith("/SKILL.md") and path != f"skills/{name}/SKILL.md":
+            raise ValueError(f"unexpected additional advertised skill: {path}")
+    validate_script_payload(transport, repo, sha, prefix, name, skill_body, files)
+    if native:
+        codex = json.loads(fetch_file(transport, repo, prefix + ".codex-plugin/plugin.json", sha))
+        if not isinstance(codex, dict):
+            raise ValueError("Codex manifest must be an object")
+        for field in ("name", "version", "description", "license"):
+            if codex.get(field) != manifest.get(field):
+                raise ValueError(f"Codex manifest {field} differs from pinned Claude manifest")
+        if codex.get("skills") != "./skills/":
+            raise ValueError("Codex manifest must expose ./skills/")
+        validate_codex_interface(codex)
+
+
 def verify_catalog(
     data: Any,
     transport: Any,
     *,
     stdout: TextIO = sys.stdout,
     stderr: TextIO = sys.stderr,
+    full_payload: bool = False,
 ) -> tuple[int, int]:
     """Return failure and advisory counts after checking every catalog entry."""
     failures = 0
@@ -298,7 +506,14 @@ def verify_catalog(
                 f"!= plugin.json version {manifest_version!r}"
             )
             continue
-        print(f"OK   {name} version={manifest_version} body={skill_path}", file=stdout)
+        if full_payload:
+            try:
+                verify_payload(transport, repo, sha, package_root, manifest, skill_body)
+            except Exception as exc:
+                fail(f"{name}: complete payload at sha {sha}: {exc}")
+                continue
+        print(f"OK   {name} version={manifest_version} body={skill_path}"
+              f" payload={'checked' if full_payload else 'not-checked'}", file=stdout)
 
     return failures, advisories
 
@@ -312,6 +527,8 @@ def parse_args() -> argparse.Namespace:
         help="catalog to check (default: .claude-plugin/marketplace.json)",
     )
     parser.add_argument("--timeout", type=int, default=60, help="GitHub request timeout in seconds")
+    parser.add_argument("--full-payload", action="store_true",
+                        help="release gate: also verify license, README, complete tree and native Codex adapter at each pinned SHA")
     return parser.parse_args()
 
 
@@ -333,6 +550,7 @@ def main() -> int:
     failures, advisories = verify_catalog(
         data,
         GitHubTransport(os.environ.get("GH_TOKEN", ""), args.timeout),
+        full_payload=args.full_payload,
     )
     if failures:
         print(f"pin-freshness: {failures} failure(s), {advisories} advisory(ies)", file=sys.stderr)

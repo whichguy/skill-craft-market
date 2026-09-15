@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: "17 6 * * 1"
   workflow_dispatch:
+    inputs:
+      full_payload:
+        description: Verify complete packaged payloads for a release candidate
+        type: boolean
+        default: false
 
 jobs:
   check-pins:
@@ -18,12 +23,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: market
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: whichguy/skill-craft
           ref: main
           path: skill-craft
           persist-credentials: false
+      - name: Verify changed native release payloads
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.MARKETPLACE_READ_TOKEN || github.token }}
+          RELEASE_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          python3 scripts/check-release-payload.py --base "$RELEASE_BASE"
       - name: Validate catalog shape and current skill coverage
         run: |
           set -euo pipefail
@@ -31,9 +45,15 @@ jobs:
           SKILL_CRAFT_ROOT="$GITHUB_WORKSPACE/skill-craft" bash test/setup-matrix-flags.test.sh
           python3 test/catalog.test.py
           python3 test/pins.test.py
+          python3 test/release-payload.test.py
       - name: Verify catalog pins (ref + sha + manifest + skill body)
         env:
           GH_TOKEN: ${{ secrets.MARKETPLACE_READ_TOKEN || github.token }}
+          VERIFY_FULL_PAYLOAD: ${{ inputs.full_payload || false }}
         run: |
           set -euo pipefail
-          python3 scripts/check-pins.py
+          if [[ "$VERIFY_FULL_PAYLOAD" == "true" ]]; then
+            python3 scripts/check-pins.py --full-payload
+          else
+            python3 scripts/check-pins.py
+          fi
