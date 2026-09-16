@@ -17,7 +17,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/architect",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -36,7 +36,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/whichguy/backchain.git",
-        "ref": "codex/marketplace-packaging-20260915",
+        "ref": "main",
         "sha": "7e2a25e32b294c1ee59473f851051ee2cc5f1880"
       },
       "policy": {
@@ -56,7 +56,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/c-plan",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -76,7 +76,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/compare-prompts",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -96,7 +96,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/derive-questions",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -117,7 +117,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/devloop",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -137,7 +137,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve-system-prompt",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -176,7 +176,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/plan-test",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -196,7 +196,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-align",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -216,7 +216,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-audit",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -236,7 +236,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-migrate",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -256,7 +256,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/prompt-refine",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -276,7 +276,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/question-bench",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -297,7 +297,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/review-coverage",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -317,7 +317,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/review-fix-bench",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -338,7 +338,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/skill-interop",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -359,7 +359,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/evidence-gates",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -380,7 +380,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/shiploop",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -400,7 +400,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve",
-        "ref": "codex/marketplace-release-20260916",
+        "ref": "main",
         "sha": "621534abd06ed3618e94b54c565224075bdd0527"
       },
       "policy": {
@@ -420,7 +420,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
-        "ref": "codex/marketplace-packaging-20260915",
+        "ref": "main",
         "sha": "7231197200d7dc5f6fe57ce7724e6ab8ea3f2425"
       },
       "policy": {
