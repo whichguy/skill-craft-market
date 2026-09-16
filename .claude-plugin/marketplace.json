@@ -37,7 +37,7 @@
         "source": "url",
         "url": "https://github.com/whichguy/backchain.git",
         "ref": "codex/marketplace-packaging-20260915",
-        "sha": "b486126e9831ab5bc3307bbfb58e0331ce4e46a1"
+        "sha": "7e2a25e32b294c1ee59473f851051ee2cc5f1880"
       },
       "policy": {
         "installation": "AVAILABLE",
