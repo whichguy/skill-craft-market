@@ -86,7 +86,8 @@ cd skill-craft
 ## External release package: Until Loop
 
 [`until-loop`](https://github.com/whichguy/until-loop) is a standalone package
-from its dedicated repository, pinned to `v0.3.0-rc.3`. Improve remains a
+from its dedicated repository, pinned to the immutable commit recorded in
+[the catalog](.claude-plugin/marketplace.json). Improve remains a
 canonical skill-craft package with its own bundled Until Loop runtime and
 independent release pin; see its release section below.
 
@@ -120,8 +121,8 @@ cd ~/src/lennox-s40 && ./install.sh    # skill-dir
 ## Pin policy
 
 Standalone **Until Loop** is also available as `until-loop@skill-craft-market`
-from [whichguy/until-loop](https://github.com/whichguy/until-loop), pinned at
-`v0.3.0-rc.3`. **Improve** retains its canonical skill-craft source and its own
+from [whichguy/until-loop](https://github.com/whichguy/until-loop), using the
+immutable catalog pin. **Improve** retains its canonical skill-craft source and its own
 release pin; installing Until Loop does not replace Improve.
 
 Normative release steps: skill-craft [`docs/skill-release-checklist.md`](https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.md).  

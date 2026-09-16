@@ -29,15 +29,15 @@
     {
       "name": "backchain",
       "description": "Use when an implementation task needs a dependency-aware plan before coding: backward planner / backchain / precondition-first planning, dependency DAGs, elaborating incomplete plans, or scheduler-ready step graphs. Turns a natural-language coding request into a forward draft then backward-chaining enriched DAG with explicit unresolved risks.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "whichguy"
       },
       "source": {
         "source": "url",
         "url": "https://github.com/whichguy/backchain.git",
-        "ref": "v0.3.1",
-        "sha": "28f4c093a4f1f2cb878bf04219acbb380be77a1f"
+        "ref": "codex/marketplace-packaging-20260915",
+        "sha": "b486126e9831ab5bc3307bbfb58e0331ce4e46a1"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -412,7 +412,7 @@
     {
       "name": "until-loop",
       "description": "Interpret natural-language work and evidence-based exit conditions with a durable state machine and LLM decision rubric.",
-      "version": "0.3.0-rc.3",
+      "version": "0.3.0-rc.4",
       "author": {
         "name": "whichguy"
       },
@@ -420,8 +420,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
-        "ref": "v0.3.0-rc.3",
-        "sha": "978f2ce7fad9f446010f09e69066aff2b05feab6"
+        "ref": "codex/marketplace-packaging-20260915",
+        "sha": "7231197200d7dc5f6fe57ce7724e6ab8ea3f2425"
       },
       "policy": {
         "installation": "AVAILABLE",
