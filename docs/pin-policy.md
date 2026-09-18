@@ -24,13 +24,17 @@ source access is needed.
 On every pull request and push, CI also runs
 `python3 scripts/check-release-payload.py --base <base-sha>` against the
 merge-base catalog. It applies the complete-payload check only to new or changed
-entries from the explicit release-payload allowlist: `whichguy/skill-craft` and
-`whichguy/workflow-engine`. Unchanged legacy entries are not silently upgraded
+entries from the explicit release-payload allowlist: `whichguy/skill-craft`,
+`whichguy/workflow-engine`, and `whichguy/backchain`. Unchanged legacy entries are not silently upgraded
 to that stronger contract. Removals are reported without payload verification.
 A same-name change from the native Skill Craft source to an external source
 fails: it requires separately qualified migration review and cannot use a
 catalog edit to evade the native release gate. Missing base commits or malformed
 base/current catalogs fail visibly.
+
+Backchain 0.3.5 is explicitly qualified as a two-skill root package containing
+Backchain and Plan Dispatcher. Its secondary card and bundled dispatcher helper
+are required; this exception does not permit extra cards in other packages.
 
 For a new marketplace-readiness release candidate, additionally run
 `python3 scripts/check-pins.py --full-payload` (or select **full_payload** in the

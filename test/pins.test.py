@@ -140,12 +140,176 @@ class PinCheckTest(unittest.TestCase):
             responses[check_pins.content_url(REPO_NAME, prefix + path, PIN)] = encoded("fixture content\n")
         return responses
 
+    def backchain_payload_responses(
+        self,
+        *,
+        repo: str = "whichguy/backchain",
+        package_root: str = "",
+        secondary_body: str | None = None,
+        include_secondary: bool = True,
+        include_dispatch: bool = True,
+        extra_skill: str | None = None,
+    ) -> dict[str, Any]:
+        paths = [
+            "LICENSE",
+            "README.md",
+            ".claude-plugin/plugin.json",
+            "skills/backchain/SKILL.md",
+        ]
+        if include_secondary:
+            paths.append("skills/plan-dispatcher/SKILL.md")
+        if include_dispatch:
+            paths.append("skills/plan-dispatcher/scripts/dispatch.js")
+        if extra_skill:
+            paths.append(f"skills/{extra_skill}/SKILL.md")
+        prefix = f"{package_root}/" if package_root else ""
+        responses: dict[str, Any] = {
+            check_pins.tree_url(repo, PIN): {
+                "truncated": False,
+                "tree": [
+                    {"path": prefix + path, "type": "blob", "mode": "100644"}
+                    for path in paths
+                ],
+            }
+        }
+        for path in ("LICENSE", "README.md"):
+            responses[check_pins.content_url(repo, prefix + path, PIN)] = encoded("fixture content\n")
+        if include_secondary:
+            responses[check_pins.content_url(repo, prefix + "skills/plan-dispatcher/SKILL.md", PIN)] = encoded(
+                secondary_body or self.plan_dispatcher_body()
+            )
+        if include_dispatch:
+            responses[check_pins.content_url(repo, prefix + "skills/plan-dispatcher/scripts/dispatch.js", PIN)] = encoded(
+                "#!/usr/bin/env node\nconsole.log('fixture');\n"
+            )
+        return responses
+
+    @staticmethod
+    def backchain_manifest(version: str = "0.3.5") -> dict[str, Any]:
+        return {"name": "backchain", "version": version, "description": "Backchain fixture"}
+
+    @staticmethod
+    def plan_dispatcher_body(
+        name: str = "plan-dispatcher", metadata_version: str = "0.1.0"
+    ) -> str:
+        return (
+            f"---\nname: {name}\nmetadata:\n  version: {metadata_version}\n"
+            "  skill_craft:\n    kind: script-backed\n---\n\n# Plan dispatcher\n"
+        )
+
     def test_full_payload_checks_pinned_subdirectory(self):
         plugin = entry()
         plugin["source"].update(source="git-subdir", path="plugins/alpha")
         failures, _, stdout, stderr = self.run_check(catalog(plugin), FakeTransport(self.full_responses(plugin)), full_payload=True)
         self.assertEqual(failures, 0, stderr)
         self.assertIn("payload=checked", stdout)
+
+    def test_full_payload_accepts_qualified_backchain_multi_skill_package(self):
+        check_pins.verify_payload(
+            FakeTransport(self.backchain_payload_responses()),
+            "whichguy/backchain",
+            PIN,
+            "",
+            self.backchain_manifest(),
+            skill_body("backchain", "0.3.5"),
+        )
+
+    def test_full_payload_rejects_missing_or_mismatched_backchain_secondary_card(self):
+        cases = (
+            ("missing", self.backchain_payload_responses(include_secondary=False), "missing packaged skills/plan-dispatcher/SKILL.md"),
+            (
+                "wrong name",
+                self.backchain_payload_responses(secondary_body=self.plan_dispatcher_body("wrong")),
+                "frontmatter name 'wrong' does not match",
+            ),
+            (
+                "wrong version",
+                self.backchain_payload_responses(secondary_body=self.plan_dispatcher_body(metadata_version="9.9.9")),
+                "metadata.version '9.9.9' != expected '0.1.0'",
+            ),
+            (
+                "nested version",
+                self.backchain_payload_responses(
+                    secondary_body=(
+                        "---\nname: plan-dispatcher\nmetadata:\n  nested:\n"
+                        "    version: 0.1.0\n---\n\n# Plan dispatcher\n"
+                    )
+                ),
+                "metadata.version None != expected '0.1.0'",
+            ),
+        )
+        for label, responses, expected in cases:
+            with self.subTest(label):
+                with self.assertRaisesRegex(ValueError, expected):
+                    check_pins.verify_payload(
+                        FakeTransport(responses),
+                        "whichguy/backchain",
+                        PIN,
+                        "",
+                        self.backchain_manifest(),
+                        skill_body("backchain", "0.3.5"),
+                    )
+
+    def test_full_payload_rejects_unqualified_backchain_secondary_card(self):
+        cases = (
+            (
+                "historical version",
+                "whichguy/backchain",
+                self.backchain_manifest("0.3.4"),
+                skill_body("backchain", "0.3.4"),
+            ),
+            (
+                "repository spoof",
+                "example/backchain",
+                self.backchain_manifest(),
+                skill_body("backchain", "0.3.5"),
+            ),
+        )
+        for label, repo, package_manifest, body in cases:
+            with self.subTest(label):
+                with self.assertRaisesRegex(ValueError, "unexpected additional advertised skill"):
+                    check_pins.verify_payload(
+                        FakeTransport(self.backchain_payload_responses(repo=repo)),
+                        repo,
+                        PIN,
+                        "",
+                        package_manifest,
+                        body,
+                    )
+
+    def test_full_payload_rejects_backchain_secondary_card_outside_canonical_root(self):
+        package_root = "plugins/backchain"
+        with self.assertRaisesRegex(ValueError, "unexpected additional advertised skill"):
+            check_pins.verify_payload(
+                FakeTransport(self.backchain_payload_responses(package_root=package_root)),
+                "whichguy/backchain",
+                PIN,
+                package_root,
+                self.backchain_manifest(),
+                skill_body("backchain", "0.3.5"),
+            )
+
+    def test_full_payload_rejects_third_card_for_qualified_backchain_package(self):
+        with self.assertRaisesRegex(ValueError, "unexpected additional advertised skill"):
+            check_pins.verify_payload(
+                FakeTransport(self.backchain_payload_responses(extra_skill="rogue")),
+                "whichguy/backchain",
+                PIN,
+                "",
+                self.backchain_manifest(),
+                skill_body("backchain", "0.3.5"),
+            )
+
+    def test_full_payload_requires_backchain_secondary_dispatch_entrypoint(self):
+        with self.assertRaisesRegex(ValueError, "dispatch.js is missing or not a regular file"):
+            check_pins.verify_payload(
+                FakeTransport(self.backchain_payload_responses(include_dispatch=False)),
+                "whichguy/backchain",
+                PIN,
+                "",
+                self.backchain_manifest(),
+                skill_body("backchain", "0.3.5"),
+            )
 
     def test_legacy_check_does_not_claim_full_payload(self):
         plugin = entry()
@@ -227,6 +391,37 @@ class PinCheckTest(unittest.TestCase):
                 PIN,
                 "",
                 "review-coverage",
+                body,
+                files,
+            )
+
+    def test_shiploop_e2e_audit_requires_all_declared_entrypoints(self):
+        body = (
+            "---\nname: shiploop-e2e-audit\nversion: 0.2.0\nmetadata:\n"
+            "  skill_craft:\n    kind: script-backed\n---\n"
+        )
+        present = (
+            "scripts/resolve_harness.py",
+            "harness/run.py",
+        )
+        files = {
+            f"skills/shiploop-e2e-audit/{relative}": {"type": "blob", "mode": "100644"}
+            for relative in present
+        }
+        transport = FakeTransport({
+            check_pins.content_url("whichguy/skill-craft", f"skills/shiploop-e2e-audit/{relative}", PIN): encoded(
+                "#!/usr/bin/env python3\nprint('fixture')\n"
+            )
+            for relative in present
+        })
+
+        with self.assertRaisesRegex(ValueError, "harness/check_suite.py is missing or not a regular file"):
+            check_pins.validate_script_payload(
+                transport,
+                "whichguy/skill-craft",
+                PIN,
+                "",
+                "shiploop-e2e-audit",
                 body,
                 files,
             )

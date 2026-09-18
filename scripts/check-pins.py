@@ -54,11 +54,20 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     },
     "review-coverage": {"scripts/review-coverage": "python3"},
     "shiploop": {"scripts/shiploop": "python3"},
+    "shiploop-e2e-audit": {
+        "scripts/resolve_harness.py": "python3",
+        "harness/run.py": "python3",
+        "harness/check_suite.py": "python3",
+    },
     "skill-interop": {
         "scripts/marketplace-run.sh": "bash",
         "scripts/scaffold-skill.sh": "bash",
     },
 }
+BACKCHAIN_MULTI_SKILL_REPOSITORY = "whichguy/backchain"
+BACKCHAIN_MULTI_SKILL_PRIMARY = ("backchain", "0.3.5")
+BACKCHAIN_MULTI_SKILL_SECONDARY = ("plan-dispatcher", "0.1.0")
+BACKCHAIN_MULTI_SKILL_ENTRYPOINTS = {"scripts/dispatch.js": "node"}
 IMPROVE_EPHEMERAL_RUNTIME = "runtime/until-loop/scripts/until_loop_ephemeral.py"
 _IMPROVE_EPHEMERAL_RUNTIME_DECLARATION = re.compile(
     r'^RUNTIME_SCRIPT="\$SKILL_ROOT/' + re.escape(IMPROVE_EPHEMERAL_RUNTIME) + r'"$',
@@ -217,6 +226,83 @@ def native_script_entrypoints(name: str, skill_body: str) -> dict[str, str] | No
     return declared
 
 
+def permits_backchain_secondary_skill(
+    repo: str, package_root: str, manifest: dict[str, Any]
+) -> bool:
+    """Allow Backchain 0.3.5's separately versioned dispatcher card only."""
+    return (
+        repo == BACKCHAIN_MULTI_SKILL_REPOSITORY
+        and package_root == ""
+        and (manifest.get("name"), manifest.get("version")) == BACKCHAIN_MULTI_SKILL_PRIMARY
+    )
+
+
+def backchain_secondary_metadata_version(skill_body: str) -> str | None:
+    """Read only the qualified dispatcher's metadata.version field."""
+    in_metadata = False
+    for line in skill_body.splitlines()[1:]:
+        if line.strip() in ("---", "..."):
+            break
+        if line == "metadata:":
+            in_metadata = True
+            continue
+        if in_metadata and line and not line[0].isspace():
+            break
+        if in_metadata:
+            match = re.fullmatch(r" {2}version:(?:[ \t]*(.*))?", line)
+            if match is not None:
+                value = (match.group(1) or "").strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                    value = value[1:-1]
+                return value
+    return None
+
+
+def validate_backchain_secondary_skill(
+    transport: Any,
+    repo: str,
+    sha: str,
+    prefix: str,
+    files: dict[str, dict[str, Any]],
+) -> None:
+    """Validate the immutable dispatcher contract paired with Backchain 0.3.5."""
+    secondary_name, secondary_version = BACKCHAIN_MULTI_SKILL_SECONDARY
+    secondary_path = f"skills/{secondary_name}/SKILL.md"
+    try:
+        secondary_body = fetch_file(transport, repo, prefix + secondary_path, sha)
+    except Exception as exc:
+        raise ValueError(f"cannot fetch qualified secondary skill {secondary_path}: {exc}") from exc
+    frontmatter = parse_frontmatter(secondary_body)
+    if frontmatter is None:
+        raise ValueError(f"qualified secondary skill {secondary_path} has no YAML frontmatter")
+    if frontmatter.get("name") != secondary_name:
+        raise ValueError(
+            f"qualified secondary skill {secondary_path} frontmatter name "
+            f"{frontmatter.get('name')!r} does not match"
+        )
+    metadata_version = backchain_secondary_metadata_version(secondary_body)
+    if metadata_version != secondary_version:
+        raise ValueError(
+            f"qualified secondary skill {secondary_path} metadata.version "
+            f"{metadata_version!r} != expected {secondary_version!r}"
+        )
+    for relative, expected in BACKCHAIN_MULTI_SKILL_ENTRYPOINTS.items():
+        problem = remote_script_problem(
+            transport,
+            repo,
+            sha,
+            prefix,
+            files,
+            f"skills/{secondary_name}/{relative}",
+            expected,
+        )
+        if problem:
+            raise ValueError(
+                f"qualified secondary skill {secondary_name} declared entrypoint "
+                f"{relative} {problem}"
+            )
+
+
 def validate_script_payload(
     transport: Any,
     repo: str,
@@ -366,7 +452,11 @@ def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
         if item.get("type") == "blob":
             files[relative] = item
     name = manifest["name"]
+    permits_secondary_skill = permits_backchain_secondary_skill(repo, package_root, manifest)
     required = ["LICENSE", "README.md", ".claude-plugin/plugin.json", f"skills/{name}/SKILL.md"]
+    if permits_secondary_skill:
+        secondary_name, _ = BACKCHAIN_MULTI_SKILL_SECONDARY
+        required.append(f"skills/{secondary_name}/SKILL.md")
     requires_codex_adapter = repo.casefold() in CODEX_ADAPTER_REPOSITORIES
     if requires_codex_adapter:
         required.append(".codex-plugin/plugin.json")
@@ -376,10 +466,16 @@ def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
     for path in ("LICENSE", "README.md"):
         if not fetch_file(transport, repo, prefix + path, sha).strip():
             raise ValueError(f"empty packaged {path}")
+    allowed_skill_cards = {f"skills/{name}/SKILL.md"}
+    if permits_secondary_skill:
+        secondary_name, _ = BACKCHAIN_MULTI_SKILL_SECONDARY
+        allowed_skill_cards.add(f"skills/{secondary_name}/SKILL.md")
     for path in files:
-        if path.endswith("/SKILL.md") and path != f"skills/{name}/SKILL.md":
+        if path.endswith("/SKILL.md") and path not in allowed_skill_cards:
             raise ValueError(f"unexpected additional advertised skill: {path}")
     validate_script_payload(transport, repo, sha, prefix, name, skill_body, files)
+    if permits_secondary_skill:
+        validate_backchain_secondary_skill(transport, repo, sha, prefix, files)
     if requires_codex_adapter:
         codex = json.loads(fetch_file(transport, repo, prefix + ".codex-plugin/plugin.json", sha))
         if not isinstance(codex, dict):
