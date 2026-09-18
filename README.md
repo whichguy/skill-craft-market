@@ -115,7 +115,7 @@ Thermostat skill body lives in **[whichguy/lennox-s40](https://github.com/whichg
 
 ```sh
 cd ~/src/lennox-s40 && ./install.sh    # skill-dir
-# Claude/Codex plugin via this catalog (ref v0.2.1, standalone repository URL)
+# Claude/Codex plugin via this catalog (immutable main SHA, standalone repository URL)
 ```
 
 ## Pin policy
@@ -143,7 +143,7 @@ See [docs/package-layout.md](docs/package-layout.md).
 ## Improve release candidate
 
 `improve@skill-craft-market` publishes the standalone Improve workflow from
-`skill-craft/plugins/improve`, pinned to `improve-v0.1.0-rc.1`. It includes the
+`skill-craft/plugins/improve`, pinned to `improve-v0.2.0-rc.1`. It includes the
 compatible Until Loop runtime, so installing this plugin does not require a
 separate Until Loop checkout. The package remains a release candidate; catalog
 discovery and isolated runtime tests do not establish full execution on every
@@ -163,6 +163,6 @@ plugin; do not install a duplicate merely to update the catalog. These commands
 are for hosts where the marketplace is already registered.
 
 Start with `Dry-run $improve on these changes without writing files.` See the
-[Improve guide](https://github.com/whichguy/skill-craft/blob/improve-v0.1.0-rc.1/skills/improve/README.md)
+[Improve guide](https://github.com/whichguy/skill-craft/blob/improve-v0.2.0-rc.1/skills/improve/README.md)
 for scope, commit overrides, completion conditions and runtime boundaries.
 The ClaudeCraft skill with the same name is a separate implementation.
