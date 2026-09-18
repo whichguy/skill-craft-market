@@ -231,6 +231,59 @@ class PinCheckTest(unittest.TestCase):
                 files,
             )
 
+    def test_improve_ephemeral_card_requires_its_declared_runtime_only(self):
+        body = (
+            "---\nname: improve\nversion: 0.2.0-rc.1\nmetadata:\n"
+            "  skill_craft:\n    kind: script-backed\n---\n\n"
+            'RUNTIME_SCRIPT="$SKILL_ROOT/runtime/until-loop/scripts/until_loop_ephemeral.py"\n'
+        )
+        path = "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+        files = {path: {"type": "blob", "mode": "100644"}}
+        transport = FakeTransport({
+            check_pins.content_url("whichguy/skill-craft", path, PIN): encoded(
+                "#!/usr/bin/env python3\nprint('fixture')\n"
+            ),
+        })
+
+        check_pins.validate_script_payload(
+            transport, "whichguy/skill-craft", PIN, "", "improve", body, files
+        )
+
+        calls = "\n".join(transport.calls)
+        self.assertIn(path, calls)
+        self.assertNotIn("runtime/until-loop/scripts/until-loop", calls)
+        self.assertNotIn("scripts/capture_evidence.py", calls)
+
+    def test_improve_ephemeral_card_rejects_missing_declared_runtime(self):
+        body = (
+            "---\nname: improve\nversion: 0.2.0-rc.1\nmetadata:\n"
+            "  skill_craft:\n    kind: script-backed\n---\n\n"
+            'RUNTIME_SCRIPT="$SKILL_ROOT/runtime/until-loop/scripts/until_loop_ephemeral.py"\n'
+        )
+
+        with self.assertRaisesRegex(ValueError, "until_loop_ephemeral.py"):
+            check_pins.validate_script_payload(
+                FakeTransport({}), "whichguy/skill-craft", PIN, "", "improve", body, {}
+            )
+
+    def test_legacy_improve_card_keeps_durable_entrypoints(self):
+        body = "---\nname: improve\nversion: 0.1.0-rc.2\nmetadata:\n  skill_craft:\n    kind: script-backed\n---\n"
+        files = {
+            "skills/improve/runtime/until-loop/scripts/until-loop": {"type": "blob", "mode": "100755"},
+        }
+        transport = FakeTransport({
+            check_pins.content_url(
+                "whichguy/skill-craft",
+                "skills/improve/runtime/until-loop/scripts/until-loop",
+                PIN,
+            ): encoded("#!/usr/bin/env python3\nprint('fixture')\n"),
+        })
+
+        with self.assertRaisesRegex(ValueError, "scripts/capture_evidence.py"):
+            check_pins.validate_script_payload(
+                transport, "whichguy/skill-craft", PIN, "", "improve", body, files
+            )
+
     def test_extensionless_python_entrypoint_does_not_need_executable_mode(self):
         body = "---\nname: review-coverage\nversion: 1.2.3\nmetadata:\n  skill_craft:\n    kind: script-backed\n---\n"
         path = "skills/review-coverage/scripts/review-coverage"
