@@ -56,6 +56,11 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
         "scripts/scaffold-skill.sh": "bash",
     },
 }
+IMPROVE_EPHEMERAL_RUNTIME = "runtime/until-loop/scripts/until_loop_ephemeral.py"
+_IMPROVE_EPHEMERAL_RUNTIME_DECLARATION = re.compile(
+    r'^RUNTIME_SCRIPT="\$SKILL_ROOT/' + re.escape(IMPROVE_EPHEMERAL_RUNTIME) + r'"$',
+    re.MULTILINE,
+)
 
 
 def is_text(value: Any) -> bool:
@@ -196,6 +201,19 @@ def remote_script_problem(
     return None
 
 
+def native_script_entrypoints(name: str, skill_body: str) -> dict[str, str] | None:
+    """Return immutable native helpers, following Improve's pinned card contract.
+
+    Improve 0.1.x declares the durable v2 CLI and evidence collector. Its newer
+    card declares the ephemeral callback runtime instead. Read that declaration
+    from the pinned body so historical releases retain their original contract.
+    """
+    declared = NATIVE_SCRIPT_ENTRYPOINTS.get(name)
+    if name == "improve" and _IMPROVE_EPHEMERAL_RUNTIME_DECLARATION.search(skill_body):
+        return {IMPROVE_EPHEMERAL_RUNTIME: "python3"}
+    return declared
+
+
 def validate_script_payload(
     transport: Any,
     repo: str,
@@ -213,7 +231,7 @@ def validate_script_payload(
     )
     if kind is None:
         return
-    declared = NATIVE_SCRIPT_ENTRYPOINTS.get(name) if repo.casefold() == "whichguy/skill-craft" else None
+    declared = native_script_entrypoints(name, skill_body) if repo.casefold() == "whichguy/skill-craft" else None
     if declared is not None:
         for relative, expected in declared.items():
             problem = remote_script_problem(
