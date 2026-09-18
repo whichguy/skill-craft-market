@@ -56,6 +56,12 @@ Use `codex plugin marketplace upgrade skill-craft-market` to refresh a Git
 marketplace. A local marketplace reads the checkout. Existing skill-dir
 installations remain independent; do not install a duplicate plugin for a leaf.
 
+Installation IDs and invocation names differ: install
+`shiploop@skill-craft-market`, then invoke `$shiploop:shiploop` in Codex or
+`/shiploop:shiploop` in Claude. The plugin name supplies the namespace; the
+marketplace name selects the catalog. Bare `$shiploop` can select a separate
+skill-directory installation.
+
 The same `.claude-plugin/marketplace.json` is supported by Codex; no second
 catalog is needed. Root-repository plugins use `source: "url"`; subdirectory
 plugins use `source: "git-subdir"` with a non-root path. Codex omits root-dot
@@ -105,6 +111,10 @@ claude plugin install until-loop@skill-craft-market
 
 ## Private source: backchain
 
+The Backchain 0.3.5 plugin contains the planning skill and Plan Dispatcher.
+In Codex, select `$backchain:backchain` or `$backchain:plan-dispatcher`;
+in Claude, use `/backchain:backchain` or `/backchain:plan-dispatcher`.
+
 Backchain is a private repository. Its marketplace entry requires existing GitHub
 read access; listing the entry does not grant access. CI access requirements are
 documented in [pin policy](docs/pin-policy.md#private-source-access).
@@ -143,7 +153,8 @@ See [docs/package-layout.md](docs/package-layout.md).
 ## Improve release candidate
 
 `improve@skill-craft-market` publishes the standalone Improve workflow from
-`skill-craft/plugins/improve`, pinned to `improve-v0.2.0-rc.1`. It includes the
+`skill-craft/plugins/improve`, at the version and immutable SHA recorded in
+[the catalog](.claude-plugin/marketplace.json). It includes the
 compatible Until Loop runtime, so installing this plugin does not require a
 separate Until Loop checkout. The package remains a release candidate; catalog
 discovery and isolated runtime tests do not establish full execution on every
@@ -162,7 +173,7 @@ skill-directory pilot, keep that pilot or deliberately switch to this pinned
 plugin; do not install a duplicate merely to update the catalog. These commands
 are for hosts where the marketplace is already registered.
 
-Start with `Dry-run $improve on these changes without writing files.` See the
-[Improve guide](https://github.com/whichguy/skill-craft/blob/improve-v0.2.0-rc.1/skills/improve/README.md)
+Start with `Dry-run $improve:improve on these changes without writing files.` See the
+[Improve guide](https://github.com/whichguy/skill-craft/blob/marketplace-2026-09-18/skills/improve/README.md)
 for scope, commit overrides, completion conditions and runtime boundaries.
 The ClaudeCraft skill with the same name is a separate implementation.

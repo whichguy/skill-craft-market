@@ -33,7 +33,9 @@ skill-craft-market/                  # catalog / adapters
 
 ## Marketplace pin shape
 
-Claude and Codex pin the **plugin view**, not the bare skill leaf:
+Claude and Codex pin the **plugin view**, not the bare skill leaf. This historical
+example illustrates the shape; current versions, release tags, and immutable
+SHAs are recorded in [the catalog](../.claude-plugin/marketplace.json):
 
 ```json
 {
@@ -88,7 +90,7 @@ Some catalog entries (e.g. **lennox-s40**) pin a **standalone** repo. skill-craf
 
 **until-loop** is a separate external package from `whichguy/until-loop`.
 **improve** remains canonical in `skill-craft/skills/improve`, pinned through
-`plugins/improve` at `improve-v0.2.0-rc.1`. Its bundled runtime does not create
+`plugins/improve` at the immutable release recorded in the catalog. Its bundled runtime does not create
 another standalone Until Loop skill leaf or change ownership of Improve.
 
 **workflow** is the marketplace identity for the standalone

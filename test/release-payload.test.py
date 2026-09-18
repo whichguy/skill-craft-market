@@ -216,6 +216,21 @@ class ReleasePayloadTest(unittest.TestCase):
             stdout,
         )
 
+    def test_changed_backchain_gets_strict_payload_check(self) -> None:
+        old = plugin("backchain", native=False, version="0.3.4")
+        old["source"]["url"] = "https://github.com/whichguy/backchain.git"
+        new = json.loads(json.dumps(old))
+        new["version"] = "0.3.5"
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, base_ref = self.make_repo(Path(tmp), catalog([old]), catalog([new]))
+            fake = FakePins()
+            result, _, stderr = self.run_gate(repo, base_ref, fake)
+        self.assertEqual(result, 0, stderr)
+        self.assertEqual(len(fake.calls), 1)
+        selected, _, full_payload = fake.calls[0]
+        self.assertEqual([entry["name"] for entry in selected["plugins"]], ["backchain"])
+        self.assertTrue(full_payload)
+
     def test_unchanged_legacy_and_removal_do_not_trigger_strict_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = catalog([plugin("legacy", native=False), plugin("retired", native=True)])

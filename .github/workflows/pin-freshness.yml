@@ -30,7 +30,7 @@ jobs:
           ref: main
           path: skill-craft
           persist-credentials: false
-      - name: Verify changed native release payloads
+      - name: Verify changed release payloads
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.MARKETPLACE_READ_TOKEN || github.token }}
