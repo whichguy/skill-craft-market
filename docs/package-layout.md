@@ -90,3 +90,20 @@ Some catalog entries (e.g. **lennox-s40**) pin a **standalone** repo. skill-craf
 **improve** remains canonical in `skill-craft/skills/improve`, pinned through
 `plugins/improve` at `improve-v0.1.0-rc.1`. Its bundled runtime does not create
 another standalone Until Loop skill leaf or change ownership of Improve.
+
+**workflow** is the marketplace identity for the standalone
+`whichguy/workflow-engine` package. Its user-facing Codex display name is
+**Weave**, while the canonical skill remains `skills/workflow/SKILL.md` and the
+generated distribution remains `plugins/workflow/`. Keep those files in the
+standalone repository; this catalog records only its immutable pin. Backchain,
+Until Loop, and ask-agent remain separately selected prerequisites when a run
+needs them and are never copied into the Workflow package.
+For a skill-directory install, reuse
+`skill-craft/install.sh --from /path/to/workflow-engine/skills/workflow`;
+Workflow does not duplicate that multi-host installer.
+
+**ask-agent** remains canonical in `skill-craft/skills/ask-agent` and is
+distributed through `skill-craft/plugins/ask-agent` independently of Workflow.
+A Workflow agent packet names it as a host-selected delegation route; it does
+not make that package an unconditional install-time dependency of authored or
+command-only workflows.

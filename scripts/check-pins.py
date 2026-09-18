@@ -37,6 +37,9 @@ CODEX_INTERFACE_TEXT_FIELDS = (
     "developerName",
     "category",
 )
+CODEX_ADAPTER_REPOSITORIES = frozenset(
+    ("whichguy/skill-craft", "whichguy/workflow-engine")
+)
 
 # Immutable native package entrypoints for this marketplace family. This map
 # is intentionally local to the pin verifier: validating a historical SHA must
@@ -364,8 +367,8 @@ def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
             files[relative] = item
     name = manifest["name"]
     required = ["LICENSE", "README.md", ".claude-plugin/plugin.json", f"skills/{name}/SKILL.md"]
-    native = repo.casefold() == "whichguy/skill-craft"
-    if native:
+    requires_codex_adapter = repo.casefold() in CODEX_ADAPTER_REPOSITORIES
+    if requires_codex_adapter:
         required.append(".codex-plugin/plugin.json")
     for path in required:
         if path not in files:
@@ -377,7 +380,7 @@ def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
         if path.endswith("/SKILL.md") and path != f"skills/{name}/SKILL.md":
             raise ValueError(f"unexpected additional advertised skill: {path}")
     validate_script_payload(transport, repo, sha, prefix, name, skill_body, files)
-    if native:
+    if requires_codex_adapter:
         codex = json.loads(fetch_file(transport, repo, prefix + ".codex-plugin/plugin.json", sha))
         if not isinstance(codex, dict):
             raise ValueError("Codex manifest must be an object")
@@ -546,7 +549,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--timeout", type=int, default=60, help="GitHub request timeout in seconds")
     parser.add_argument("--full-payload", action="store_true",
-                        help="release gate: also verify license, README, complete tree and native Codex adapter at each pinned SHA")
+                        help="release gate: also verify license, README, complete tree and required Codex adapter at each pinned SHA")
     return parser.parse_args()
 
 

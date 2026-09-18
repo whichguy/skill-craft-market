@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strictly verify changed Skill Craft release payloads in a catalog diff."""
+"""Strictly verify changed release payloads from qualified catalog sources."""
 
 from __future__ import annotations
 
@@ -17,6 +17,13 @@ from urllib.parse import urlparse
 
 CATALOG_RELATIVE = Path(".claude-plugin/marketplace.json")
 NATIVE_REPOSITORY = "whichguy/skill-craft"
+WORKFLOW_ENGINE_REPOSITORY = "whichguy/workflow-engine"
+# A changed catalog entry from these repositories is a release candidate, so
+# CI must inspect its complete immutable payload. Other external entries keep
+# their existing verification path until they are explicitly qualified here.
+FULL_PAYLOAD_REPOSITORIES = frozenset(
+    (NATIVE_REPOSITORY, WORKFLOW_ENGINE_REPOSITORY)
+)
 
 
 class GateError(RuntimeError):
@@ -54,16 +61,26 @@ def canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def native_skill_craft_entry(entry: dict[str, Any]) -> bool:
-    """Return whether an entry points to the canonical Skill Craft repository."""
+def repository_identity(entry: dict[str, Any]) -> str | None:
+    """Return the normalized GitHub repository identity for a catalog entry."""
     source = entry.get("source")
     if not isinstance(source, dict) or not isinstance(source.get("url"), str):
-        return False
+        return None
     parsed = urlparse(source["url"])
     if parsed.scheme.casefold() != "https" or parsed.netloc.casefold() != "github.com":
-        return False
+        return None
     path = parsed.path.strip("/").casefold().removesuffix(".git")
-    return path == NATIVE_REPOSITORY
+    return path or None
+
+
+def native_skill_craft_entry(entry: dict[str, Any]) -> bool:
+    """Return whether an entry points to the canonical Skill Craft repository."""
+    return repository_identity(entry) == NATIVE_REPOSITORY
+
+
+def full_payload_entry(entry: dict[str, Any]) -> bool:
+    """Return whether an entry is covered by the strict release-payload gate."""
+    return repository_identity(entry) in FULL_PAYLOAD_REPOSITORIES
 
 
 def entries_by_name(data: Any, label: str) -> dict[str, dict[str, Any]]:
@@ -171,7 +188,7 @@ def run_gate(
     stdout: TextIO = sys.stdout,
     stderr: TextIO = sys.stderr,
 ) -> int:
-    """Compare catalogs and full-verify only changed/new native packages."""
+    """Compare catalogs and full-verify changed/new qualified packages."""
     prior = base_catalog(repo, base)
     current = current_catalog(repo)
 
@@ -198,11 +215,11 @@ def run_gate(
     selected = [
         current[name]
         for name in sorted(current)
-        if native_skill_craft_entry(current[name])
+        if full_payload_entry(current[name])
         and (name not in prior or canonical_json(current[name]) != canonical_json(prior[name]))
     ]
     if not selected:
-        print("release-payload: no changed or new native Skill Craft entries", file=stdout)
+        print("release-payload: no changed or new full-payload-gated entries", file=stdout)
         return 0
 
     module = check_pins_module or load_check_pins(repo)
@@ -226,7 +243,7 @@ def run_gate(
         return 1
     print(
         f"release-payload: strict payload verification passed for {len(selected)} "
-        f"changed/new native entr{'y' if len(selected) == 1 else 'ies'} "
+        f"changed/new full-payload-gated entr{'y' if len(selected) == 1 else 'ies'} "
         f"({advisories} advisory(ies))",
         file=stdout,
     )

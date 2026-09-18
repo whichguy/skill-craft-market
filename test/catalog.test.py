@@ -112,6 +112,30 @@ class CatalogCheckTest(unittest.TestCase):
             result = self.run_check(path)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_accepts_external_generated_subdirectory_package(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "market"
+            path = self.write_catalog(
+                root,
+                catalog(
+                    [
+                        plugin(
+                            "workflow",
+                            {
+                                "source": "git-subdir",
+                                "url": "https://github.com/whichguy/workflow-engine.git",
+                                "path": "plugins/workflow",
+                                "ref": "workflow-v0.2.0",
+                            },
+                        )
+                    ]
+                ),
+            )
+
+            result = self.run_check(path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_rejects_source_without_supported_remote_verifier(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = self.write_catalog(Path(tmp) / "market", catalog([

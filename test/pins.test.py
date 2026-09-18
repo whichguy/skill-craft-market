@@ -312,6 +312,13 @@ class PinCheckTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Codex manifest version"):
             check_pins.verify_payload(FakeTransport(responses), repo, PIN, "", manifest(), skill_body())
 
+    def test_workflow_engine_full_payload_requires_codex_adapter(self):
+        repo = "whichguy/workflow-engine"
+        responses = {url.replace(REPO_NAME, repo): value for url, value in self.full_responses().items()}
+
+        with self.assertRaisesRegex(ValueError, "missing packaged .codex-plugin/plugin.json"):
+            check_pins.verify_payload(FakeTransport(responses), repo, PIN, "", manifest(), skill_body())
+
     def test_native_full_payload_requires_complete_codex_interface(self):
         repo = "whichguy/skill-craft"
         responses = {url.replace(REPO_NAME, repo): value for url, value in self.full_responses().items()}
