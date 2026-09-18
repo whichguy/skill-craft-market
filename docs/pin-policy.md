@@ -24,22 +24,24 @@ source access is needed.
 On every pull request and push, CI also runs
 `python3 scripts/check-release-payload.py --base <base-sha>` against the
 merge-base catalog. It applies the complete-payload check only to new or changed
-entries that still point at `whichguy/skill-craft`; unchanged legacy entries are
-not silently upgraded to that stronger contract. Removals are reported without
-payload verification. A same-name change from the native Skill Craft source to
-an external source fails: it requires separately qualified migration review and
-cannot use a catalog edit to evade the native release gate. Missing base commits
-or malformed base/current catalogs fail visibly.
+entries from the explicit release-payload allowlist: `whichguy/skill-craft` and
+`whichguy/workflow-engine`. Unchanged legacy entries are not silently upgraded
+to that stronger contract. Removals are reported without payload verification.
+A same-name change from the native Skill Craft source to an external source
+fails: it requires separately qualified migration review and cannot use a
+catalog edit to evade the native release gate. Missing base commits or malformed
+base/current catalogs fail visibly.
 
 For a new marketplace-readiness release candidate, additionally run
 `python3 scripts/check-pins.py --full-payload` (or select **full_payload** in the
 manual pin-freshness workflow). This opt-in migration gate verifies the complete
 pinned Git tree, packaged LICENSE/README, advertised skill and script payload,
-and the native Skill Craft Codex adapter's identity/layout. Truncated trees,
-symlinks and submodules fail rather than pretending their targets are bundled.
-Legacy pins may fail this stronger gate until republished; the default check
-explicitly reports `payload=not-checked` and does not imply payload readiness.
-This gate still does not execute a skill or prove host/model behavior.
+and the required Codex adapter's identity/layout for repositories in that
+allowlist. Truncated trees, symlinks and submodules fail rather than pretending
+their targets are bundled. Legacy pins may fail this stronger gate until
+republished; the default check explicitly reports `payload=not-checked` and
+does not imply payload readiness. This gate still does not execute a skill or
+prove host/model behavior.
 
 The verifier covers the catalog's current default skill layout:
 `<package root>/skills/<manifest name>/SKILL.md`. Explicit manifest `skills`

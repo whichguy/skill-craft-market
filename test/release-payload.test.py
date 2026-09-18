@@ -27,6 +27,7 @@ SPEC.loader.exec_module(check_release_payload)
 PIN = "0123456789abcdef0123456789abcdef01234567"
 NATIVE_URL = "https://github.com/whichguy/skill-craft.git"
 EXTERNAL_URL = "https://github.com/example/legacy.git"
+WORKFLOW_ENGINE_URL = "https://github.com/whichguy/workflow-engine.git"
 
 
 def available_git() -> str | None:
@@ -52,15 +53,20 @@ def plugin(
     name: str,
     *,
     native: bool,
+    workflow_engine: bool = False,
     version: str = "1.0.0",
 ) -> dict[str, object]:
     source: dict[str, object] = {
-        "source": "git-subdir" if native else "url",
-        "url": NATIVE_URL if native else EXTERNAL_URL,
+        "source": "git-subdir" if native or workflow_engine else "url",
+        "url": (
+            NATIVE_URL
+            if native
+            else WORKFLOW_ENGINE_URL if workflow_engine else EXTERNAL_URL
+        ),
         "sha": PIN,
         "ref": "v1.0.0",
     }
-    if native:
+    if native or workflow_engine:
         source["path"] = f"plugins/{name}"
     return {
         "name": name,
@@ -157,7 +163,7 @@ class ReleasePayloadTest(unittest.TestCase):
             )
         return result, stdout.getvalue(), stderr.getvalue()
 
-    def test_changed_and_new_native_entries_get_one_strict_payload_check(self) -> None:
+    def test_changed_and_new_qualified_entries_get_one_strict_payload_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = catalog([plugin("alpha", native=True), plugin("legacy", native=False)])
             current = catalog(
@@ -181,7 +187,34 @@ class ReleasePayloadTest(unittest.TestCase):
         )
         self.assertTrue(full_payload)
         self.assertEqual(transport.timeout, 60)
-        self.assertIn("strict payload verification passed for 2 changed/new native entries", stdout)
+        self.assertIn(
+            "strict payload verification passed for 2 changed/new full-payload-gated entries",
+            stdout,
+        )
+
+    def test_new_workflow_engine_entry_gets_strict_payload_check(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = catalog([plugin("legacy", native=False)])
+            current = catalog(
+                [
+                    plugin("legacy", native=False),
+                    plugin("workflow", native=False, workflow_engine=True),
+                ]
+            )
+            repo, base_ref = self.make_repo(Path(tmp), base, current)
+            fake = FakePins()
+
+            result, stdout, stderr = self.run_gate(repo, base_ref, fake)
+
+        self.assertEqual(result, 0, stderr)
+        self.assertEqual(len(fake.calls), 1)
+        selected, _, full_payload = fake.calls[0]
+        self.assertEqual([entry["name"] for entry in selected["plugins"]], ["workflow"])
+        self.assertTrue(full_payload)
+        self.assertIn(
+            "strict payload verification passed for 1 changed/new full-payload-gated entry",
+            stdout,
+        )
 
     def test_unchanged_legacy_and_removal_do_not_trigger_strict_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -195,7 +228,7 @@ class ReleasePayloadTest(unittest.TestCase):
         self.assertEqual(result, 0, stderr)
         self.assertEqual(fake.calls, [])
         self.assertIn("REMOVAL retired: reported only", stdout)
-        self.assertIn("no changed or new native Skill Craft entries", stdout)
+        self.assertIn("no changed or new full-payload-gated entries", stdout)
 
     def test_native_to_external_migration_fails_without_running_checker(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
