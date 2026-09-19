@@ -7,6 +7,7 @@ import base64
 import copy
 import importlib.util
 import io
+import json
 import unittest
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,11 @@ SPEC.loader.exec_module(check_pins)
 PIN = "0123456789abcdef0123456789abcdef01234567"
 REPO_NAME = "example/alpha"
 REF = "v1.2.3"
+MCP_REPO = "whichguy/mcp-gas-deploy"
+MCP_PATH = "marketplace/mcp-gas-deploy"
+MCP_ADAPTER_PIN = "fedcba9876543210fedcba9876543210fedcba98"
+MCP_RUNTIME_PIN = "eaab4388b3ca60c05b2179e08727d9164aa3473d"
+MCP_REF = "main"
 
 
 def encoded(text: str) -> dict[str, str]:
@@ -56,6 +62,34 @@ def catalog(plugin: dict[str, Any]) -> dict[str, Any]:
 
 def manifest(*, name: str = "alpha", version: str = "1.2.3") -> dict[str, Any]:
     return {"name": name, "version": version, "description": "alpha description"}
+
+
+def mcp_entry(*, version: str = "0.5.0") -> dict[str, Any]:
+    return {
+        "name": "mcp-gas-deploy",
+        "description": "MCP fixture",
+        "version": version,
+        "source": {
+            "source": "git-subdir",
+            "url": f"https://github.com/{MCP_REPO}.git",
+            "path": MCP_PATH,
+            "sha": MCP_ADAPTER_PIN,
+            "ref": MCP_REF,
+        },
+    }
+
+
+def mcp_manifest(
+    *, version: str = "0.5.0", capabilities: list[str] | None = None
+) -> dict[str, Any]:
+    return {
+        "name": "mcp-gas-deploy",
+        "version": version,
+        "description": "MCP fixture",
+        "license": "Apache-2.0",
+        "mcpServers": "./.mcp.json",
+        "interface": {"capabilities": capabilities if capabilities is not None else ["Read", "Write"]},
+    }
 
 
 def codex_manifest(*, name: str = "alpha", version: str = "1.2.3") -> dict[str, Any]:
@@ -110,6 +144,71 @@ def valid_responses(
     }
     if source.get("ref"):
         responses[check_pins.compare_url(REPO_NAME, sha, source["ref"])] = {"status": "identical"}
+    return responses
+
+
+def mcp_responses(
+    plugin: dict[str, Any],
+    *,
+    claude: dict[str, Any] | None = None,
+    codex: dict[str, Any] | None = None,
+    launcher: dict[str, Any] | None = None,
+    runtime_sha: str = MCP_RUNTIME_PIN,
+    source_package: dict[str, Any] | None = None,
+    runtime_package: dict[str, Any] | None = None,
+    full_payload: bool = False,
+) -> dict[str, Any]:
+    source = plugin["source"]
+    adapter_sha = source["sha"]
+    prefix = f"{source['path']}/"
+    version = str(plugin["version"])
+    launcher = launcher or {
+        "mcpServers": {
+            "mcp-gas-deploy": {
+                "command": "npx",
+                "args": ["-y", f"github:{MCP_REPO}#{runtime_sha}"],
+            }
+        }
+    }
+    package = {"name": "mcp-gas-deploy", "version": version}
+    responses: dict[str, Any] = {
+        check_pins.commit_url(MCP_REPO, source["ref"]): {"sha": adapter_sha},
+        check_pins.compare_url(MCP_REPO, adapter_sha, source["ref"]): {"status": "identical"},
+        check_pins.content_url(MCP_REPO, prefix + ".claude-plugin/plugin.json", adapter_sha): encoded(
+            json.dumps(claude or mcp_manifest(version=version))
+        ),
+        check_pins.content_url(MCP_REPO, prefix + ".codex-plugin/plugin.json", adapter_sha): encoded(
+            json.dumps(codex or mcp_manifest(version=version))
+        ),
+        check_pins.content_url(MCP_REPO, prefix + ".mcp.json", adapter_sha): encoded(json.dumps(launcher)),
+        check_pins.content_url(MCP_REPO, "package.json", adapter_sha): encoded(
+            json.dumps(source_package or package)
+        ),
+        check_pins.commit_url(MCP_REPO, runtime_sha): {"sha": runtime_sha},
+        check_pins.compare_url(MCP_REPO, runtime_sha, adapter_sha): {"status": "ahead"},
+        check_pins.content_url(MCP_REPO, "package.json", runtime_sha): encoded(
+            json.dumps(runtime_package or package)
+        ),
+    }
+    if full_payload:
+        paths = [
+            "LICENSE",
+            "README.md",
+            ".claude-plugin/plugin.json",
+            ".codex-plugin/plugin.json",
+            ".mcp.json",
+        ]
+        responses[check_pins.tree_url(MCP_REPO, adapter_sha)] = {
+            "truncated": False,
+            "tree": [
+                {"path": prefix + path, "type": "blob", "mode": "100644"}
+                for path in paths
+            ],
+        }
+        for path in ("LICENSE", "README.md"):
+            responses[check_pins.content_url(MCP_REPO, prefix + path, adapter_sha)] = encoded(
+                "fixture content\n"
+            )
     return responses
 
 
@@ -203,6 +302,290 @@ class PinCheckTest(unittest.TestCase):
         failures, _, stdout, stderr = self.run_check(catalog(plugin), FakeTransport(self.full_responses(plugin)), full_payload=True)
         self.assertEqual(failures, 0, stderr)
         self.assertIn("payload=checked", stdout)
+
+    def test_mcp_default_check_accepts_exact_no_skill_package_and_dynamic_version(self):
+        plugin = mcp_entry(version="9.8.7")
+        transport = FakeTransport(mcp_responses(plugin))
+
+        failures, advisories, stdout, stderr = self.run_check(catalog(plugin), transport)
+
+        self.assertEqual((failures, advisories), (0, 0), stderr)
+        self.assertIn("OK   mcp-gas-deploy version=9.8.7", stdout)
+        self.assertFalse(any("SKILL.md" in call for call in transport.calls))
+
+    def test_mcp_accepts_any_lowercase_immutable_runtime_sha(self):
+        runtime_sha = "abcdef01abcdef01abcdef01abcdef01abcdef01"
+        plugin = mcp_entry()
+        transport = FakeTransport(mcp_responses(plugin, runtime_sha=runtime_sha))
+
+        failures, advisories, _, stderr = self.run_check(catalog(plugin), transport)
+
+        self.assertEqual((failures, advisories), (0, 0), stderr)
+        self.assertIn(
+            check_pins.compare_url(MCP_REPO, runtime_sha, MCP_ADAPTER_PIN), transport.calls
+        )
+
+    def test_mcp_rejects_floating_or_malformed_launcher(self):
+        cases = (
+            (
+                "floating runtime ref",
+                {
+                    "mcpServers": {
+                        "mcp-gas-deploy": {
+                            "command": "npx",
+                            "args": ["-y", f"github:{MCP_REPO}#main"],
+                        }
+                    }
+                },
+                "runtime SHA",
+            ),
+            (
+                "wrong command",
+                {
+                    "mcpServers": {
+                        "mcp-gas-deploy": {
+                            "command": "node",
+                            "args": ["-y", f"github:{MCP_REPO}#{MCP_RUNTIME_PIN}"],
+                        }
+                    }
+                },
+                "command",
+            ),
+            (
+                "uppercase runtime SHA",
+                {
+                    "mcpServers": {
+                        "mcp-gas-deploy": {
+                            "command": "npx",
+                            "args": ["-y", f"github:{MCP_REPO}#{MCP_RUNTIME_PIN.upper()}"],
+                        }
+                    }
+                },
+                "runtime SHA",
+            ),
+            (
+                "wrong launcher repository",
+                {
+                    "mcpServers": {
+                        "mcp-gas-deploy": {
+                            "command": "npx",
+                            "args": [
+                                "-y",
+                                f"github:example/mcp-gas-deploy#{MCP_RUNTIME_PIN}",
+                            ],
+                        }
+                    }
+                },
+                "runtime SHA",
+            ),
+            (
+                "extra server",
+                {
+                    "mcpServers": {
+                        "mcp-gas-deploy": {
+                            "command": "npx",
+                            "args": ["-y", f"github:{MCP_REPO}#{MCP_RUNTIME_PIN}"],
+                        },
+                        "other": {"command": "npx", "args": ["-y", "other"]},
+                    }
+                },
+                "exactly one",
+            ),
+        )
+        for label, launcher, expected in cases:
+            with self.subTest(label):
+                plugin = mcp_entry()
+                failures, _, _, stderr = self.run_check(
+                    catalog(plugin), FakeTransport(mcp_responses(plugin, launcher=launcher))
+                )
+                self.assertEqual(failures, 1)
+                self.assertIn(expected, stderr)
+
+    def test_mcp_rejects_adapter_mismatch_and_forbidden_capabilities(self):
+        cases = (
+            (
+                "Codex adapter server reference",
+                mcp_manifest(),
+                dict(mcp_manifest(), mcpServers="./other.json"),
+                "Codex plugin.json mcpServers",
+            ),
+            (
+                "host manifest mismatch",
+                mcp_manifest(),
+                dict(mcp_manifest(), description="different host metadata"),
+                "Claude and Codex plugin.json must be identical",
+            ),
+            (
+                "Claude skills",
+                dict(mcp_manifest(), skills="./skills/"),
+                mcp_manifest(),
+                "Claude plugin.json must not define skills",
+            ),
+            (
+                "Codex dependencies",
+                mcp_manifest(),
+                dict(mcp_manifest(), dependencies={"other": "1.0.0"}),
+                "Codex plugin.json must not define dependencies",
+            ),
+            (
+                "Codex hooks",
+                mcp_manifest(),
+                dict(mcp_manifest(), hooks={}),
+                "Codex plugin.json must not define hooks",
+            ),
+        )
+        for label, claude, codex, expected in cases:
+            with self.subTest(label):
+                plugin = mcp_entry()
+                failures, _, _, stderr = self.run_check(
+                    catalog(plugin), FakeTransport(mcp_responses(plugin, claude=claude, codex=codex))
+                )
+                self.assertEqual(failures, 1)
+                self.assertIn(expected, stderr)
+
+    def test_mcp_rejects_unexpected_capabilities_from_both_adapters(self):
+        cases = (
+            ("Claude", mcp_manifest(capabilities=["Read"]), mcp_manifest()),
+            ("Codex", mcp_manifest(), mcp_manifest(capabilities=["Read"])),
+        )
+        for adapter, claude, codex in cases:
+            with self.subTest(adapter=adapter):
+                plugin = mcp_entry()
+                failures, _, _, stderr = self.run_check(
+                    catalog(plugin), FakeTransport(mcp_responses(plugin, claude=claude, codex=codex))
+                )
+                self.assertEqual(failures, 1)
+                self.assertIn(f"{adapter} plugin.json interface.capabilities", stderr)
+
+    def test_mcp_near_matches_do_not_bypass_skill_validation(self):
+        cases = ("repository", "name", "path")
+        for mismatch in cases:
+            with self.subTest(mismatch=mismatch):
+                plugin = mcp_entry()
+                responses = mcp_responses(plugin)
+                if mismatch == "repository":
+                    plugin["source"]["url"] = "https://github.com/example/mcp-gas-deploy.git"
+                    responses = {
+                        url.replace(MCP_REPO, "example/mcp-gas-deploy"): value
+                        for url, value in responses.items()
+                    }
+                elif mismatch == "name":
+                    plugin["name"] = "mcp-gas-deploy-other"
+                    responses = mcp_responses(
+                        plugin,
+                        claude=dict(mcp_manifest(), name="mcp-gas-deploy-other"),
+                    )
+                else:
+                    plugin["source"]["path"] = "marketplace/other"
+                    responses = {
+                        url.replace(MCP_PATH, "marketplace/other"): value
+                        for url, value in responses.items()
+                    }
+
+                failures, _, _, stderr = self.run_check(catalog(plugin), FakeTransport(responses))
+
+                self.assertEqual(failures, 1)
+                self.assertIn("cannot fetch advertised skill body", stderr)
+
+    def test_mcp_rejects_unreachable_runtime_or_runtime_version_mismatch(self):
+        cases = (
+            ("unreachable", {"status": "behind"}, None, None, "runtime SHA is not reachable"),
+            (
+                "wrong source version",
+                None,
+                {"name": "mcp-gas-deploy", "version": "9.9.9"},
+                None,
+                "source package.json version",
+            ),
+            (
+                "wrong runtime version",
+                None,
+                None,
+                {"name": "mcp-gas-deploy", "version": "9.9.9"},
+                "runtime package.json version",
+            ),
+        )
+        for label, comparison, source_package, runtime_package, expected in cases:
+            with self.subTest(label):
+                plugin = mcp_entry()
+                responses = mcp_responses(
+                    plugin,
+                    source_package=source_package,
+                    runtime_package=runtime_package,
+                )
+                if comparison is not None:
+                    responses[check_pins.compare_url(MCP_REPO, MCP_RUNTIME_PIN, MCP_ADAPTER_PIN)] = comparison
+                failures, _, _, stderr = self.run_check(catalog(plugin), FakeTransport(responses))
+                self.assertEqual(failures, 1)
+                self.assertIn(expected, stderr)
+
+    def test_mcp_rejects_self_referential_adapter_and_runtime_sha(self):
+        plugin = mcp_entry()
+        plugin["source"]["sha"] = MCP_RUNTIME_PIN
+
+        failures, _, _, stderr = self.run_check(
+            catalog(plugin), FakeTransport(mcp_responses(plugin))
+        )
+
+        self.assertEqual(failures, 1)
+        self.assertIn("runtime SHA must precede the adapter source.sha", stderr)
+
+    def test_mcp_full_payload_requires_the_exact_five_files(self):
+        plugin = mcp_entry()
+        responses = mcp_responses(plugin, full_payload=True)
+        tree = responses[check_pins.tree_url(MCP_REPO, MCP_ADAPTER_PIN)]["tree"]
+        tree[:] = [item for item in tree if not item["path"].endswith("/.mcp.json")]
+
+        failures, _, _, stderr = self.run_check(
+            catalog(plugin), FakeTransport(responses), full_payload=True
+        )
+
+        self.assertEqual(failures, 1)
+        self.assertIn("missing packaged .mcp.json", stderr)
+
+    def test_mcp_full_payload_rejects_truncated_tree_and_symlink(self):
+        cases = ("truncated", "symlink")
+        for label in cases:
+            with self.subTest(label):
+                plugin = mcp_entry()
+                responses = mcp_responses(plugin, full_payload=True)
+                tree_response = responses[check_pins.tree_url(MCP_REPO, MCP_ADAPTER_PIN)]
+                if label == "truncated":
+                    tree_response["truncated"] = True
+                    expected = "truncated=false"
+                else:
+                    tree_response["tree"].append(
+                        {
+                            "path": f"{MCP_PATH}/skills/mcp-gas-deploy",
+                            "type": "blob",
+                            "mode": "120000",
+                        }
+                    )
+                    expected = "materialize symlink"
+                failures, _, _, stderr = self.run_check(
+                    catalog(plugin), FakeTransport(responses), full_payload=True
+                )
+                self.assertEqual(failures, 1)
+                self.assertIn(expected, stderr)
+
+    def test_mcp_full_payload_rejects_hooks_dependencies_and_skills(self):
+        cases = ("hooks/hook.json", "dependencies/package.json", "skills/mcp-gas-deploy/SKILL.md")
+        for extra in cases:
+            with self.subTest(extra=extra):
+                plugin = mcp_entry()
+                responses = mcp_responses(plugin, full_payload=True)
+                responses[check_pins.tree_url(MCP_REPO, MCP_ADAPTER_PIN)]["tree"].append(
+                    {
+                        "path": f"{MCP_PATH}/{extra}",
+                        "type": "blob",
+                        "mode": "100644",
+                    }
+                )
+                failures, _, _, stderr = self.run_check(
+                    catalog(plugin), FakeTransport(responses), full_payload=True
+                )
+                self.assertEqual(failures, 1)
+                self.assertIn("MCP-only payload must not include", stderr)
 
     def test_full_payload_accepts_qualified_backchain_multi_skill_package(self):
         check_pins.verify_payload(

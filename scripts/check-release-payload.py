@@ -19,11 +19,17 @@ CATALOG_RELATIVE = Path(".claude-plugin/marketplace.json")
 NATIVE_REPOSITORY = "whichguy/skill-craft"
 WORKFLOW_ENGINE_REPOSITORY = "whichguy/workflow-engine"
 BACKCHAIN_REPOSITORY = "whichguy/backchain"
+MCP_GAS_DEPLOY_REPOSITORY = "whichguy/mcp-gas-deploy"
 # A changed catalog entry from these repositories is a release candidate, so
 # CI must inspect its complete immutable payload. Other external entries keep
 # their existing verification path until they are explicitly qualified here.
 FULL_PAYLOAD_REPOSITORIES = frozenset(
-    (NATIVE_REPOSITORY, WORKFLOW_ENGINE_REPOSITORY, BACKCHAIN_REPOSITORY)
+    (
+        NATIVE_REPOSITORY,
+        WORKFLOW_ENGINE_REPOSITORY,
+        BACKCHAIN_REPOSITORY,
+        MCP_GAS_DEPLOY_REPOSITORY,
+    )
 )
 
 

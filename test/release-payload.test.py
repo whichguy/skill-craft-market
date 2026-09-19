@@ -28,6 +28,7 @@ PIN = "0123456789abcdef0123456789abcdef01234567"
 NATIVE_URL = "https://github.com/whichguy/skill-craft.git"
 EXTERNAL_URL = "https://github.com/example/legacy.git"
 WORKFLOW_ENGINE_URL = "https://github.com/whichguy/workflow-engine.git"
+MCP_GAS_DEPLOY_URL = "https://github.com/whichguy/mcp-gas-deploy.git"
 
 
 def available_git() -> str | None:
@@ -73,6 +74,21 @@ def plugin(
         "description": f"{name} description",
         "version": version,
         "source": source,
+    }
+
+
+def mcp_gas_deploy_plugin(*, version: str = "0.5.0") -> dict[str, object]:
+    return {
+        "name": "mcp-gas-deploy",
+        "description": "MCP GAS Deploy",
+        "version": version,
+        "source": {
+            "source": "git-subdir",
+            "url": MCP_GAS_DEPLOY_URL,
+            "path": "marketplace/mcp-gas-deploy",
+            "sha": PIN,
+            "ref": "main",
+        },
     }
 
 
@@ -210,6 +226,25 @@ class ReleasePayloadTest(unittest.TestCase):
         self.assertEqual(len(fake.calls), 1)
         selected, _, full_payload = fake.calls[0]
         self.assertEqual([entry["name"] for entry in selected["plugins"]], ["workflow"])
+        self.assertTrue(full_payload)
+        self.assertIn(
+            "strict payload verification passed for 1 changed/new full-payload-gated entry",
+            stdout,
+        )
+
+    def test_new_mcp_gas_deploy_entry_gets_strict_payload_check(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = catalog([plugin("legacy", native=False)])
+            current = catalog([plugin("legacy", native=False), mcp_gas_deploy_plugin()])
+            repo, base_ref = self.make_repo(Path(tmp), base, current)
+            fake = FakePins()
+
+            result, stdout, stderr = self.run_gate(repo, base_ref, fake)
+
+        self.assertEqual(result, 0, stderr)
+        self.assertEqual(len(fake.calls), 1)
+        selected, _, full_payload = fake.calls[0]
+        self.assertEqual([entry["name"] for entry in selected["plugins"]], ["mcp-gas-deploy"])
         self.assertTrue(full_payload)
         self.assertIn(
             "strict payload verification passed for 1 changed/new full-payload-gated entry",

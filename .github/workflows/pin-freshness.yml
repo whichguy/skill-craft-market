@@ -46,7 +46,7 @@ jobs:
           python3 test/catalog.test.py
           python3 test/pins.test.py
           python3 test/release-payload.test.py
-      - name: Verify catalog pins (ref + sha + manifest + skill body)
+      - name: Verify catalog pins (ref + sha + package contract)
         env:
           GH_TOKEN: ${{ secrets.MARKETPLACE_READ_TOKEN || github.token }}
           VERIFY_FULL_PAYLOAD: ${{ inputs.full_payload || false }}

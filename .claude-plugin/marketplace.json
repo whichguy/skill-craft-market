@@ -491,6 +491,27 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "mcp-gas-deploy",
+      "description": "Google Apps Script deployment and project-management MCP tools.",
+      "version": "0.5.0",
+      "author": {
+        "name": "whichguy",
+        "url": "https://github.com/whichguy"
+      },
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/mcp-gas-deploy.git",
+        "path": "marketplace/mcp-gas-deploy",
+        "ref": "main",
+        "sha": "002e31fba39e70764ef5ab571316d219e9ccf81a"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
     }
   ],
   "interface": {

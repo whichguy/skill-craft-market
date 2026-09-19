@@ -88,6 +88,31 @@ symlinks (`install.sh`) or Claude-compatible marketplace adapters that reference
 
 Some catalog entries (e.g. **lennox-s40**) pin a **standalone** repo. skill-craft must **not** also ship `skills/<same-name>/`. Install skill-dir from the standalone clone’s `install.sh`.
 
+**mcp-gas-deploy** is a separate MCP-only package from
+`whichguy/mcp-gas-deploy`, rooted at
+`marketplace/mcp-gas-deploy` in that source repository. It has no `SKILL.md`,
+hooks, dependencies, commands, or agents. Its complete package is exactly:
+
+```text
+marketplace/mcp-gas-deploy/
+  LICENSE
+  README.md
+  .claude-plugin/plugin.json  # mcpServers: "./.mcp.json"
+  .codex-plugin/plugin.json   # mcpServers: "./.mcp.json"
+  .mcp.json                   # one mcp-gas-deploy npx launcher
+```
+
+The launcher is `npx -y github:whichguy/mcp-gas-deploy#<40-character runtime
+SHA>`. Its immutable runtime source revision is separately fixed at a reachable
+ancestor of the newer adapter source pin, so the adapter can describe it without
+self-referencing its own commit. The runtime root `package.json` name/version,
+the catalog, and both identical parsed adapter manifests must agree; each
+adapter declares exactly `interface.capabilities: ["Read", "Write"]`. The
+five-file rule validates the immutable adapter source payload; it is not a claim
+that the launcher has a vendored or fully resolved npm dependency graph. This
+private source requires GitHub read access, including CI's `MARKETPLACE_READ_TOKEN`
+when the workflow token cannot read the repository.
+
 **until-loop** is a separate external package from `whichguy/until-loop`.
 **improve** remains canonical in `skill-craft/skills/improve`, pinned through
 `plugins/improve` at the immutable release recorded in the catalog. Its bundled runtime does not create

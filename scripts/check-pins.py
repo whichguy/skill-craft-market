@@ -21,6 +21,7 @@ from urllib.parse import quote, urlparse
 
 
 SHA = re.compile(r"^[0-9a-fA-F]{40}$")
+LOWER_SHA = re.compile(r"^[0-9a-f]{40}$")
 FRONTMATTER_FIELD = re.compile(r"^([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 GITHUB_API = "https://api.github.com"
 SCRIPT_SUFFIX_INTERPRETERS = {
@@ -40,6 +41,21 @@ CODEX_INTERFACE_TEXT_FIELDS = (
 CODEX_ADAPTER_REPOSITORIES = frozenset(
     ("whichguy/skill-craft", "whichguy/workflow-engine")
 )
+MCP_GAS_DEPLOY_REPOSITORY = "whichguy/mcp-gas-deploy"
+MCP_GAS_DEPLOY_NAME = "mcp-gas-deploy"
+MCP_GAS_DEPLOY_PATH = "marketplace/mcp-gas-deploy"
+MCP_GAS_DEPLOY_FORBIDDEN_MANIFEST_FIELDS = (
+    "skills",
+    "hooks",
+    "dependencies",
+    "commands",
+    "agents",
+)
+MCP_GAS_DEPLOY_INTERFACE_CAPABILITIES = ["Read", "Write"]
+MCP_GAS_DEPLOY_ALLOWED_PAYLOAD_FILES = frozenset(
+    ("LICENSE", "README.md", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".mcp.json")
+)
+MCP_GAS_DEPLOY_FORBIDDEN_PAYLOAD_PARTS = frozenset(("hooks", "skills", "dependencies"))
 
 # Immutable native package entrypoints for this marketplace family. This map
 # is intentionally local to the pin verifier: validating a historical SHA must
@@ -423,6 +439,191 @@ def advertised_skill_path(package_root: str, manifest: dict[str, Any], name: str
     return f"{prefix}skills/{manifest_name}/SKILL.md"
 
 
+def is_mcp_gas_deploy_package(name: str, repo: str, package_root: str) -> bool:
+    """Recognize only the qualified no-skill MCP package contract."""
+    return (
+        name == MCP_GAS_DEPLOY_NAME
+        and repo.casefold() == MCP_GAS_DEPLOY_REPOSITORY
+        and package_root == MCP_GAS_DEPLOY_PATH
+    )
+
+
+def fetch_json_object(transport: Any, repo: str, path: str, sha: str, label: str) -> dict[str, Any]:
+    """Read a pinned JSON object with a source-specific failure message."""
+    try:
+        payload = json.loads(fetch_file(transport, repo, path, sha))
+    except Exception as exc:
+        raise ValueError(f"cannot read {label}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} must be a JSON object")
+    return payload
+
+
+def validate_mcp_gas_deploy_adapter(
+    manifest: dict[str, Any], adapter: str, catalog_name: str, catalog_version: str
+) -> None:
+    """Validate an MCP-only adapter without accepting a skill capability."""
+    if manifest.get("name") != catalog_name:
+        raise ValueError(
+            f"{adapter} plugin.json name {manifest.get('name')!r} does not match {catalog_name!r}"
+        )
+    if str(manifest.get("version")) != catalog_version:
+        raise ValueError(
+            f"{adapter} plugin.json version {manifest.get('version')!r} "
+            f"does not match {catalog_version!r}"
+        )
+    if manifest.get("mcpServers") != "./.mcp.json":
+        raise ValueError(f"{adapter} plugin.json mcpServers must be './.mcp.json'")
+    for field in MCP_GAS_DEPLOY_FORBIDDEN_MANIFEST_FIELDS:
+        if field in manifest:
+            raise ValueError(f"{adapter} plugin.json must not define {field}")
+    interface = manifest.get("interface")
+    if (
+        not isinstance(interface, dict)
+        or interface.get("capabilities") != MCP_GAS_DEPLOY_INTERFACE_CAPABILITIES
+    ):
+        raise ValueError(
+            f"{adapter} plugin.json interface.capabilities must be exactly "
+            "['Read', 'Write']"
+        )
+
+
+def mcp_gas_deploy_runtime_sha(launcher: dict[str, Any]) -> str:
+    """Validate the single immutable npx launcher and return its runtime SHA."""
+    if set(launcher) != {"mcpServers"}:
+        raise ValueError(".mcp.json must contain exactly the mcpServers object")
+    servers = launcher.get("mcpServers")
+    if not isinstance(servers, dict) or set(servers) != {MCP_GAS_DEPLOY_NAME}:
+        raise ValueError(".mcp.json must declare exactly one mcp-gas-deploy server")
+    server = servers[MCP_GAS_DEPLOY_NAME]
+    if not isinstance(server, dict) or set(server) != {"command", "args"}:
+        raise ValueError(".mcp.json mcp-gas-deploy server must contain exactly command and args")
+    if server["command"] != "npx":
+        raise ValueError(".mcp.json mcp-gas-deploy command must be 'npx'")
+    args = server["args"]
+    prefix = f"github:{MCP_GAS_DEPLOY_REPOSITORY}#"
+    if (
+        not isinstance(args, list)
+        or len(args) != 2
+        or args[0] != "-y"
+        or not isinstance(args[1], str)
+        or not args[1].startswith(prefix)
+    ):
+        raise ValueError(
+            ".mcp.json mcp-gas-deploy args must use the required immutable runtime SHA"
+        )
+    runtime_sha = args[1][len(prefix):]
+    if not LOWER_SHA.fullmatch(runtime_sha):
+        raise ValueError(
+            ".mcp.json mcp-gas-deploy args must use a lowercase 40-character runtime SHA"
+        )
+    return runtime_sha
+
+
+def validate_mcp_gas_deploy_package_json(
+    package: dict[str, Any], label: str, catalog_name: str, catalog_version: str
+) -> None:
+    """Match a source root package identity to the catalog and both adapters."""
+    if package.get("name") != catalog_name:
+        raise ValueError(
+            f"{label} name {package.get('name')!r} does not match catalog/plugin name {catalog_name!r}"
+        )
+    if str(package.get("version")) != catalog_version:
+        raise ValueError(
+            f"{label} version {package.get('version')!r} "
+            f"does not match catalog/plugin version {catalog_version!r}"
+        )
+
+
+def verify_mcp_gas_deploy_contract(
+    transport: Any,
+    repo: str,
+    adapter_sha: str,
+    package_root: str,
+    catalog: dict[str, Any],
+    claude: dict[str, Any],
+) -> None:
+    """Verify the qualified MCP-only package at its adapter and runtime SHAs."""
+    catalog_name = str(catalog["name"])
+    catalog_version = str(catalog["version"])
+    prefix = f"{package_root}/"
+    validate_mcp_gas_deploy_adapter(claude, "Claude", catalog_name, catalog_version)
+    codex = fetch_json_object(
+        transport,
+        repo,
+        prefix + ".codex-plugin/plugin.json",
+        adapter_sha,
+        "Codex plugin.json",
+    )
+    validate_mcp_gas_deploy_adapter(codex, "Codex", catalog_name, catalog_version)
+    if claude != codex:
+        raise ValueError("Claude and Codex plugin.json must be identical")
+    launcher = fetch_json_object(transport, repo, prefix + ".mcp.json", adapter_sha, ".mcp.json")
+    runtime_sha = mcp_gas_deploy_runtime_sha(launcher)
+    if adapter_sha.casefold() == runtime_sha:
+        raise ValueError("runtime SHA must precede the adapter source.sha")
+
+    source_package = fetch_json_object(
+        transport, repo, "package.json", adapter_sha, "source package.json"
+    )
+    validate_mcp_gas_deploy_package_json(
+        source_package, "source package.json", catalog_name, catalog_version
+    )
+    runtime_commit = transport.get_json(commit_url(repo, runtime_sha))
+    if not isinstance(runtime_commit, dict) or runtime_commit.get("sha", "").casefold() != runtime_sha:
+        raise ValueError(f"runtime SHA {runtime_sha} was not found")
+    comparison = transport.get_json(compare_url(repo, runtime_sha, adapter_sha))
+    if not isinstance(comparison, dict) or comparison.get("status") != "ahead":
+        raise ValueError("runtime SHA is not reachable from adapter source.sha")
+    runtime_package = fetch_json_object(
+        transport, repo, "package.json", runtime_sha, "runtime package.json"
+    )
+    validate_mcp_gas_deploy_package_json(
+        runtime_package, "runtime package.json", catalog_name, catalog_version
+    )
+
+
+def verify_mcp_gas_deploy_payload(
+    transport: Any, repo: str, sha: str, package_root: str
+) -> None:
+    """Require the five-file MCP-only payload at the immutable adapter SHA."""
+    payload = transport.get_json(tree_url(repo, sha))
+    if not isinstance(payload, dict) or payload.get("truncated") is not False:
+        raise ValueError("GitHub tree must be complete (truncated=false)")
+    tree = payload.get("tree")
+    if not isinstance(tree, list):
+        raise ValueError("GitHub tree response has no tree array")
+    prefix = f"{package_root}/"
+    files: dict[str, dict[str, Any]] = {}
+    for item in tree:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+            raise ValueError("malformed GitHub tree entry")
+        path = item["path"]
+        if not path.startswith(prefix):
+            continue
+        relative = path[len(prefix):]
+        if not valid_subdir(relative):
+            raise ValueError(f"unsafe payload path {relative!r}")
+        if item.get("mode") in ("120000", "160000"):
+            raise ValueError(f"payload must materialize symlink/submodule: {relative}")
+        if item.get("type") == "blob":
+            files[relative] = item
+    for path in sorted(MCP_GAS_DEPLOY_ALLOWED_PAYLOAD_FILES - set(files)):
+        raise ValueError(f"missing packaged {path}")
+    for path in files:
+        forbidden = next(
+            (part for part in path.split("/") if part in MCP_GAS_DEPLOY_FORBIDDEN_PAYLOAD_PARTS),
+            None,
+        )
+        if forbidden is not None:
+            raise ValueError(f"MCP-only payload must not include {forbidden} files: {path}")
+    for path in sorted(set(files) - MCP_GAS_DEPLOY_ALLOWED_PAYLOAD_FILES):
+        raise ValueError(f"unexpected MCP-only payload file: {path}")
+    for path in ("LICENSE", "README.md"):
+        if not fetch_file(transport, repo, prefix + path, sha).strip():
+            raise ValueError(f"empty packaged {path}")
+
+
 def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
                    manifest: dict[str, Any], skill_body: str) -> None:
     """Release-only gate for the complete pinned tree; never executes its code.
@@ -560,6 +761,7 @@ def verify_catalog(
                 continue
 
         package_root = source.get("path", "")
+        mcp_only = is_mcp_gas_deploy_package(name, repo, package_root)
         print(
             f"check {name} path={package_root!r} ref={ref!r} sha={sha!r} "
             f"catalog_version={plugin.get('version')!r}",
@@ -586,7 +788,7 @@ def verify_catalog(
         if manifest.get("name") != name:
             fail(f"{name}: target plugin.json name {manifest.get('name')!r} does not match")
             valid_manifest = False
-        if "hooks" in manifest:
+        if "hooks" in manifest and not mcp_only:
             fail(f"{name}: target plugin.json must not define hooks")
             valid_manifest = False
         if not valid_manifest:
@@ -599,6 +801,27 @@ def verify_catalog(
                 f"{name}: catalog description differs from plugin.json description at sha {sha} "
                 "(not a hard fail)"
             )
+
+        if mcp_only:
+            try:
+                verify_mcp_gas_deploy_contract(
+                    transport, repo, sha, package_root, plugin, manifest
+                )
+            except Exception as exc:
+                fail(f"{name}: invalid MCP-only package at sha {sha}: {exc}")
+                continue
+            if full_payload:
+                try:
+                    verify_mcp_gas_deploy_payload(transport, repo, sha, package_root)
+                except Exception as exc:
+                    fail(f"{name}: complete MCP-only payload at sha {sha}: {exc}")
+                    continue
+            print(
+                f"OK   {name} version={manifest_version} mcp={MCP_GAS_DEPLOY_NAME} "
+                f"payload={'checked' if full_payload else 'not-checked'}",
+                file=stdout,
+            )
+            continue
 
         try:
             skill_path = advertised_skill_path(package_root, manifest, name)
