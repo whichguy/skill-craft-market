@@ -99,19 +99,22 @@ marketplace/mcp-gas-deploy/
   README.md
   .claude-plugin/plugin.json  # mcpServers: "./.mcp.json"
   .codex-plugin/plugin.json   # mcpServers: "./.mcp.json"
-  .mcp.json                   # one mcp-gas-deploy npx launcher
+  .mcp.json                   # one npx launcher; startup_timeout_sec: 180
 ```
 
 The launcher is `npx -y github:whichguy/mcp-gas-deploy#<40-character runtime
 SHA>`. Its immutable runtime source revision is separately fixed at a reachable
 ancestor of the newer adapter source pin, so the adapter can describe it without
-self-referencing its own commit. The runtime root `package.json` name/version,
-the catalog, and both identical parsed adapter manifests must agree; each
-adapter declares exactly `interface.capabilities: ["Read", "Write"]`. The
-five-file rule validates the immutable adapter source payload; it is not a claim
-that the launcher has a vendored or fully resolved npm dependency graph. This
-private source requires GitHub read access, including CI's `MARKETPLACE_READ_TOKEN`
-when the workflow token cannot read the repository.
+self-referencing its own commit. Its sole server sets `startup_timeout_sec: 180`
+because cold `npx` startup can exceed the native Codex default. For Claude, set
+the parent MCP process `MCP_TIMEOUT=180000` as documented in the root README.
+The runtime root `package.json` name/version, the catalog, and both identical
+parsed adapter manifests must agree; each adapter declares exactly
+`interface.capabilities: ["Read", "Write"]`. The five-file rule validates the
+immutable adapter source payload; it is not a claim that the launcher has a
+vendored or fully resolved npm dependency graph. This private source requires
+GitHub read access, including CI's `MARKETPLACE_READ_TOKEN` when the workflow
+token cannot read the repository.
 
 **until-loop** is a separate external package from `whichguy/until-loop`.
 **improve** remains canonical in `skill-craft/skills/improve`, pinned through

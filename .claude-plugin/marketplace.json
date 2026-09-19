@@ -505,7 +505,7 @@
         "url": "https://github.com/whichguy/mcp-gas-deploy.git",
         "path": "marketplace/mcp-gas-deploy",
         "ref": "main",
-        "sha": "002e31fba39e70764ef5ab571316d219e9ccf81a"
+        "sha": "ff652c95f41c476de397e682c2ab71dcd2bd26ee"
       },
       "policy": {
         "installation": "AVAILABLE",

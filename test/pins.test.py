@@ -167,6 +167,7 @@ def mcp_responses(
             "mcp-gas-deploy": {
                 "command": "npx",
                 "args": ["-y", f"github:{MCP_REPO}#{runtime_sha}"],
+                "startup_timeout_sec": 180,
             }
         }
     }
@@ -334,6 +335,7 @@ class PinCheckTest(unittest.TestCase):
                         "mcp-gas-deploy": {
                             "command": "npx",
                             "args": ["-y", f"github:{MCP_REPO}#main"],
+                            "startup_timeout_sec": 180,
                         }
                     }
                 },
@@ -346,6 +348,7 @@ class PinCheckTest(unittest.TestCase):
                         "mcp-gas-deploy": {
                             "command": "node",
                             "args": ["-y", f"github:{MCP_REPO}#{MCP_RUNTIME_PIN}"],
+                            "startup_timeout_sec": 180,
                         }
                     }
                 },
@@ -358,6 +361,7 @@ class PinCheckTest(unittest.TestCase):
                         "mcp-gas-deploy": {
                             "command": "npx",
                             "args": ["-y", f"github:{MCP_REPO}#{MCP_RUNTIME_PIN.upper()}"],
+                            "startup_timeout_sec": 180,
                         }
                     }
                 },
@@ -373,6 +377,7 @@ class PinCheckTest(unittest.TestCase):
                                 "-y",
                                 f"github:example/mcp-gas-deploy#{MCP_RUNTIME_PIN}",
                             ],
+                            "startup_timeout_sec": 180,
                         }
                     }
                 },
@@ -385,6 +390,7 @@ class PinCheckTest(unittest.TestCase):
                         "mcp-gas-deploy": {
                             "command": "npx",
                             "args": ["-y", f"github:{MCP_REPO}#{MCP_RUNTIME_PIN}"],
+                            "startup_timeout_sec": 180,
                         },
                         "other": {"command": "npx", "args": ["-y", "other"]},
                     }
@@ -400,6 +406,32 @@ class PinCheckTest(unittest.TestCase):
                 )
                 self.assertEqual(failures, 1)
                 self.assertIn(expected, stderr)
+
+    def test_mcp_requires_an_exact_180_second_startup_timeout(self):
+        cases = (
+            ("missing", None),
+            ("not an integer", "180"),
+            ("not an integer type", 180.0),
+            ("too short", 179),
+            ("wrong value", 181),
+        )
+        for label, timeout in cases:
+            with self.subTest(label):
+                server: dict[str, Any] = {
+                    "command": "npx",
+                    "args": ["-y", f"github:{MCP_REPO}#{MCP_RUNTIME_PIN}"],
+                }
+                if timeout is not None:
+                    server["startup_timeout_sec"] = timeout
+                launcher = {"mcpServers": {"mcp-gas-deploy": server}}
+                plugin = mcp_entry()
+
+                failures, _, _, stderr = self.run_check(
+                    catalog(plugin), FakeTransport(mcp_responses(plugin, launcher=launcher))
+                )
+
+                self.assertEqual(failures, 1)
+                self.assertIn("startup_timeout_sec", stderr)
 
     def test_mcp_rejects_adapter_mismatch_and_forbidden_capabilities(self):
         cases = (

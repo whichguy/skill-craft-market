@@ -28,11 +28,13 @@ verification requires both adapters to reference `./.mcp.json`, rejects skill,
 hook, dependency, command, and agent declarations, and requires the parsed
 Claude and Codex manifests to match exactly with
 `interface.capabilities: ["Read", "Write"]`. It then checks one exact `npx`
-launcher. That launcher uses `-y github:whichguy/mcp-gas-deploy#` followed by a
-lowercase 40-character immutable runtime source revision. The runtime commit
-must exist and be an ancestor of the newer adapter `source.sha`; the source and
-runtime root `package.json` name/version must match the catalog and both
-adapters.
+launcher with `startup_timeout_sec: 180`. That launcher uses
+`-y github:whichguy/mcp-gas-deploy#` followed by a lowercase 40-character
+immutable runtime source revision. The runtime commit must exist and be an
+ancestor of the newer adapter `source.sha`; the source and runtime root
+`package.json` name/version must match the catalog and both adapters. Claude's
+parent MCP process also requires `MCP_TIMEOUT=180000`, as documented in the
+root README.
 
 On every pull request and push, CI also runs
 `python3 scripts/check-release-payload.py --base <base-sha>` against the

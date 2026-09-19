@@ -496,10 +496,19 @@ def mcp_gas_deploy_runtime_sha(launcher: dict[str, Any]) -> str:
     if not isinstance(servers, dict) or set(servers) != {MCP_GAS_DEPLOY_NAME}:
         raise ValueError(".mcp.json must declare exactly one mcp-gas-deploy server")
     server = servers[MCP_GAS_DEPLOY_NAME]
-    if not isinstance(server, dict) or set(server) != {"command", "args"}:
-        raise ValueError(".mcp.json mcp-gas-deploy server must contain exactly command and args")
+    if not isinstance(server, dict) or set(server) != {
+        "command",
+        "args",
+        "startup_timeout_sec",
+    }:
+        raise ValueError(
+            ".mcp.json mcp-gas-deploy server must contain exactly command, args, "
+            "and startup_timeout_sec"
+        )
     if server["command"] != "npx":
         raise ValueError(".mcp.json mcp-gas-deploy command must be 'npx'")
+    if type(server["startup_timeout_sec"]) is not int or server["startup_timeout_sec"] != 180:
+        raise ValueError(".mcp.json mcp-gas-deploy startup_timeout_sec must be 180")
     args = server["args"]
     prefix = f"github:{MCP_GAS_DEPLOY_REPOSITORY}#"
     if (

@@ -132,6 +132,9 @@ claude plugin install mcp-gas-deploy@skill-craft-market
 
 Requires Node.js 22.13 or later and npm. The first MCP start downloads and builds
 the server with `npx`; Google authentication is a separate tool operation.
+Git-based starts can take more than a minute. The adapter gives Codex a 180-second
+startup budget. For Claude Code, launch with `MCP_TIMEOUT=180000 claude` to allow
+the same startup time; this is separate from individual tool execution timeouts.
 The catalog pins the adapter to a commit, and its launcher pins the server to
 a verified commit as well. Updating the catalog does not silently advance that
 runtime pin. These pins identify source revisions; npm dependencies still resolve
