@@ -190,7 +190,7 @@ class PinCheckTest(unittest.TestCase):
 
     @staticmethod
     def plan_dispatcher_body(
-        name: str = "plan-dispatcher", metadata_version: str = "0.1.0"
+        name: str = "plan-dispatcher", metadata_version: str = "0.1.1"
     ) -> str:
         return (
             f"---\nname: {name}\nmetadata:\n  version: {metadata_version}\n"
@@ -225,17 +225,17 @@ class PinCheckTest(unittest.TestCase):
             (
                 "wrong version",
                 self.backchain_payload_responses(secondary_body=self.plan_dispatcher_body(metadata_version="9.9.9")),
-                "metadata.version '9.9.9' != expected '0.1.0'",
+                "metadata.version '9.9.9' != expected '0.1.1'",
             ),
             (
                 "nested version",
                 self.backchain_payload_responses(
                     secondary_body=(
                         "---\nname: plan-dispatcher\nmetadata:\n  nested:\n"
-                        "    version: 0.1.0\n---\n\n# Plan dispatcher\n"
+                        "    version: 0.1.1\n---\n\n# Plan dispatcher\n"
                     )
                 ),
-                "metadata.version None != expected '0.1.0'",
+                "metadata.version None != expected '0.1.1'",
             ),
         )
         for label, responses, expected in cases:

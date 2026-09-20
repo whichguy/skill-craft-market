@@ -66,7 +66,7 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
 }
 BACKCHAIN_MULTI_SKILL_REPOSITORY = "whichguy/backchain"
 BACKCHAIN_MULTI_SKILL_PRIMARY = ("backchain", "0.3.5")
-BACKCHAIN_MULTI_SKILL_SECONDARY = ("plan-dispatcher", "0.1.0")
+BACKCHAIN_MULTI_SKILL_SECONDARY = ("plan-dispatcher", "0.1.1")
 BACKCHAIN_MULTI_SKILL_ENTRYPOINTS = {"scripts/dispatch.js": "node"}
 IMPROVE_EPHEMERAL_RUNTIME = "runtime/until-loop/scripts/until_loop_ephemeral.py"
 _IMPROVE_EPHEMERAL_RUNTIME_DECLARATION = re.compile(
