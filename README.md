@@ -19,7 +19,7 @@ Pick **one track per leaf** on a machine: plugin **or** skill-dir, not both (dev
 
 ## Setup matrix
 
-See **[docs/setup-matrix.md](docs/setup-matrix.md)** for Grok / Claude / Cursor / Codex / Hermes.
+See **[docs/setup-matrix.md](docs/setup-matrix.md)** for Grok / Claude / Cursor / Codex / OpenCode / Hermes.
 The source repo's [distribution guide](https://github.com/whichguy/skill-craft/blob/main/docs/distribution.md)
 describes both personal installs and marketplace publication.
 
@@ -27,7 +27,7 @@ describes both personal installs and marketplace publication.
 
 | Want | Do |
 |------|-----|
-| Skills on Grok/Claude/Cursor/Codex (development) | In a skill-craft clone: `./install.sh --grok-only --claude-only --cursor-only --codex-only` |
+| Skills on Grok/Claude/Cursor/Codex/OpenCode (development) | In a skill-craft clone: `./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only` |
 | Skills on Claude (dev) | same skill-dir **or** plugin — not both |
 | Skills on Claude (pinned release) | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
 | Native Grok/Cursor marketplace | Source repo `whichguy/skill-craft`, using its generated native indexes; see host notes |
@@ -85,7 +85,7 @@ Canonical file: **`.claude-plugin/marketplace.json`** (only committed catalog).
 ```sh
 git clone https://github.com/whichguy/skill-craft.git
 cd skill-craft
-./install.sh --skill review-coverage   # all five hosts by default, including Cursor and Hermes
+./install.sh --skill review-coverage   # all six hosts by default, including OpenCode and Hermes
 ./install.sh --status --skill review-coverage
 ```
 

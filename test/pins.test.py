@@ -395,6 +395,23 @@ class PinCheckTest(unittest.TestCase):
                 files,
             )
 
+    def test_ask_agent_requires_workspace_helper_even_with_another_python_script(self):
+        body = (
+            "---\nname: ask-agent\nversion: 0.6.0\nmetadata:\n"
+            "  skill_craft:\n    kind: mixed\n---\n"
+        )
+        path = "skills/ask-agent/scripts/unrelated.py"
+        files = {path: {"type": "blob", "mode": "100644"}}
+        transport = FakeTransport({
+            check_pins.content_url("whichguy/skill-craft", path, PIN): encoded(
+                "#!/usr/bin/env python3\nprint('fixture')\n"
+            ),
+        })
+        with self.assertRaisesRegex(ValueError, "declared entrypoint scripts/ask_agent_workspace.py"):
+            check_pins.validate_script_payload(
+                transport, "whichguy/skill-craft", PIN, "", "ask-agent", body, files
+            )
+
     def test_shiploop_e2e_audit_requires_all_declared_entrypoints(self):
         body = (
             "---\nname: shiploop-e2e-audit\nversion: 0.2.0\nmetadata:\n"

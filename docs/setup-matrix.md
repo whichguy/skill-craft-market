@@ -8,19 +8,24 @@
 | Claude Code | `./install.sh --claude-only` | `claude plugin install <leaf>@skill-craft-market` | `whichguy/skill-craft-market` |
 | Cursor | `./install.sh --cursor-only` | Native package/local test or marketplace UI; see [Cursor notes](../faces/cursor/README.md) | `whichguy/skill-craft` native Cursor index |
 | Codex | `./install.sh --codex-only` | `codex plugin add <leaf>@skill-craft-market` | `whichguy/skill-craft-market` |
+| OpenCode | `./install.sh --opencode-only` | N/A — skill-dir | N/A |
 | Hermes | `./install.sh --hermes-only` | N/A — managed skill-dir copy | N/A |
 
-Add `--skill <leaf>` to select one skill. No host flag targets all five hosts.
-For exactly Grok, Claude, Cursor, and Codex:
+Add `--skill <leaf>` to select one skill. No host flag targets all six hosts.
+For exactly Grok, Claude, Cursor, Codex, and OpenCode:
 
 ```sh
-./install.sh --grok-only --claude-only --cursor-only --codex-only
+./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only
 ```
 
 Use `--dry-run` to preview or `--status` to inspect skill-dir state. Keep one
 installation track per skill per host; confirm cached plugin enablement before
 calling it an active duplicate. Cursor also reads Claude/Codex compatibility
 skill directories.
+
+OpenCode uses `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills/<leaf>`.
+Keep compatible Claude-directory discovery pointed at the same source; installation
+does not change OpenCode providers, permissions, or experimental task settings.
 
 Register Claude/Codex with `plugin marketplace add whichguy/skill-craft-market`.
 Grok registers `grok plugin marketplace add whichguy/skill-craft` after the native

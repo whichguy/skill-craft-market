@@ -63,6 +63,7 @@ Skill-dir installs target the agentskills body:
 skill-craft/skills/<leaf>/  →  ~/.grok/skills/<leaf>
                             →  ~/.codex/skills/<leaf>
                             →  ~/.cursor/skills/<leaf>
+                            →  ${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills/<leaf>
                             →  ~/.hermes/skills/software-development/<leaf>
                             →  ~/.claude/skills/<leaf>   (side-load, not plugin)
 ```

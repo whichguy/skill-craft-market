@@ -329,7 +329,7 @@
     {
       "name": "skill-interop",
       "description": "Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill layout, review skill for interop, or install across hosts. Covers prompt-first design, host matrix, anti-patterns (divergent copies, silent mode fallback, abs symlinks), and script-backed CLI contracts.",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "author": {
         "name": "Backchain",
         "url": "https://github.com/whichguy"
@@ -338,8 +338,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/skill-interop",
-        "ref": "main",
-        "sha": "0e8e9927047efcd455a2fc8ae23aff441a734249"
+        "ref": "skill-interop-v0.2.3",
+        "sha": "853254fea23837dabfe954d5bead61c1d2e250c4"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -371,7 +371,7 @@
     {
       "name": "shiploop",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
-      "version": "0.18.10",
+      "version": "0.18.11",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -380,8 +380,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/shiploop",
-        "ref": "main",
-        "sha": "0e8e9927047efcd455a2fc8ae23aff441a734249"
+        "ref": "shiploop-v0.18.11",
+        "sha": "985c1bd5dfae51fa1a8b9b2ff39f0c24e49e81ac"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -432,7 +432,7 @@
     {
       "name": "ask-agent",
       "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
-      "version": "0.3.1",
+      "version": "0.6.0",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -441,8 +441,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/ask-agent",
-        "sha": "0e8e9927047efcd455a2fc8ae23aff441a734249",
-        "ref": "main"
+        "sha": "853254fea23837dabfe954d5bead61c1d2e250c4",
+        "ref": "ask-agent-v0.6.0"
       },
       "policy": {
         "installation": "AVAILABLE",
