@@ -473,8 +473,8 @@
     },
     {
       "name": "shiploop-e2e-audit",
-      "description": "Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full campaigns, or review of existing trial output. Full Google Apps Script game cases require an authorized test deployment and hosted behavior evidence. Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.",
-      "version": "0.2.1",
+      "description": "Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full campaigns, or review of existing trial output. Full Google Apps Script and Salesforce game cases require an authorized test deployment and hosted behavior evidence. Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.",
+      "version": "0.2.2",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -483,8 +483,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/shiploop-e2e-audit",
-        "ref": "shiploop-e2e-audit-v0.2.1",
-        "sha": "378b99dc7b0ad91418e165b461982d44eeeb746d"
+        "ref": "shiploop-e2e-audit-v0.2.2",
+        "sha": "780b0a2a4f98972f36398b72deddeb1ff537e0b8"
       },
       "policy": {
         "installation": "AVAILABLE",
