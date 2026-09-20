@@ -371,7 +371,7 @@
     {
       "name": "shiploop",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
-      "version": "0.18.3",
+      "version": "0.18.4",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -380,8 +380,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/shiploop",
-        "ref": "shiploop-v0.18.3",
-        "sha": "200a4d9b3d7ba3410350fc52616380576cf3e1e6"
+        "ref": "main",
+        "sha": "a79f84bb30969b2b7d0558e32b57b48ce7dfdf19"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -392,7 +392,7 @@
     {
       "name": "improve",
       "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
-      "version": "0.2.0-rc.2",
+      "version": "0.2.0-rc.3",
       "author": {
         "name": "whichguy"
       },
@@ -400,8 +400,8 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve",
-        "ref": "marketplace-2026-09-18",
-        "sha": "954a88bcf28146449eb77055926f49def1df9eaa"
+        "ref": "main",
+        "sha": "a79f84bb30969b2b7d0558e32b57b48ce7dfdf19"
       },
       "policy": {
         "installation": "AVAILABLE",
