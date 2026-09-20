@@ -12,6 +12,7 @@ grep -q 'Claude' "$matrix" || fail "matrix missing Claude"
 grep -q 'Grok' "$matrix" || fail "matrix missing Grok"
 grep -q 'Codex' "$matrix" || fail "matrix missing Codex"
 grep -q 'Cursor' "$matrix" || fail "matrix missing Cursor"
+grep -q 'OpenCode' "$matrix" || fail "matrix missing OpenCode"
 grep -q 'Hermes' "$matrix" || fail "matrix missing Hermes"
 grep -qi 'install skill' "$matrix" || fail "matrix missing install skill"
 grep -qi 'install plugin' "$matrix" || fail "matrix missing install plugin"
@@ -32,11 +33,11 @@ done
 
 if [[ -n "$install_sh" ]]; then
   help_out="$("$install_sh" --help 2>&1 || true)"
-  for flag in --claude-only --grok-only --codex-only --hermes-only --cursor-only --status; do
+  for flag in --claude-only --grok-only --codex-only --hermes-only --cursor-only --opencode-only --status; do
     grep -q -- "$flag" <<<"$help_out" || fail "install.sh --help missing $flag"
   done
   # matrix documents these flag forms
-  for flag in --claude-only --grok-only --codex-only --hermes-only --cursor-only; do
+  for flag in --claude-only --grok-only --codex-only --hermes-only --cursor-only --opencode-only; do
     grep -q -- "$flag" "$matrix" || fail "matrix missing $flag"
   done
   printf 'setup-matrix-flags.test.sh: sibling install.sh OK (%s)\n' "$install_sh"

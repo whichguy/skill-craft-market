@@ -46,6 +46,7 @@ CODEX_ADAPTER_REPOSITORIES = frozenset(
 # never depend on whatever happens to be in a current source checkout. Update
 # it only with an intentional native package contract/catalog transition.
 NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
+    "ask-agent": {"scripts/ask_agent_workspace.py": "python3"},
     "devloop": {"scripts/devloop-run": "bash"},
     "evidence-gates": {"scripts/evidence-gates": "python3"},
     "improve": {
