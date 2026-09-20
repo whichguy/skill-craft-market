@@ -174,6 +174,6 @@ plugin; do not install a duplicate merely to update the catalog. These commands
 are for hosts where the marketplace is already registered.
 
 Start with `Dry-run $improve:improve on these changes without writing files.` See the
-[Improve guide](https://github.com/whichguy/skill-craft/blob/marketplace-2026-09-18/skills/improve/README.md)
+[Improve guide](https://github.com/whichguy/skill-craft/blob/b6486f7a09eeafd5bd1e8478e4d4211a4ed3747a/skills/improve/README.md)
 for scope, commit overrides, completion conditions and runtime boundaries.
 The ClaudeCraft skill with the same name is a separate implementation.
