@@ -109,6 +109,39 @@ claude plugin marketplace update skill-craft-market
 claude plugin install until-loop@skill-craft-market
 ```
 
+## Google Apps Script MCP server
+
+`mcp-gas-deploy@skill-craft-market` provides 16 Google Apps Script tools,
+including local validation, project discovery, deployment, built-in guides,
+and remote sandboxes for Git worktrees. The standalone adapter comes from
+[mcp-gas-deploy](https://github.com/whichguy/mcp-gas-deploy/tree/main/marketplace/mcp-gas-deploy).
+It includes no planning dependency or lifecycle hooks.
+
+The source repository is private. Installation and the first server launch
+require existing GitHub read access and working Git credentials; catalog
+discovery does not grant repository access.
+
+```sh
+# After registering this marketplace:
+codex plugin marketplace upgrade skill-craft-market
+codex plugin add mcp-gas-deploy@skill-craft-market
+
+claude plugin marketplace update skill-craft-market
+claude plugin install mcp-gas-deploy@skill-craft-market
+```
+
+Requires Node.js 22.13 or later and npm. The first MCP start downloads and builds
+the server with `npx`; Google authentication is a separate tool operation.
+Git-based starts can take more than a minute. The adapter gives Codex a 180-second
+startup budget. For Claude Code, launch with `MCP_TIMEOUT=180000 claude` to allow
+the same startup time; this is separate from individual tool execution timeouts.
+The catalog pins the adapter to a commit, and its launcher pins the server to
+a verified commit as well. Updating the catalog does not silently advance that
+runtime pin. These pins identify source revisions; npm dependencies still resolve
+under the source package's version constraints. Installation alone does not verify Google account access or deploy
+an application. Enable one GAS server integration per host to avoid duplicate
+servers from `gas-suite`, the original GAS marketplace, or a manual MCP setup.
+
 ## Private source: backchain
 
 The Backchain 0.3.5 plugin contains the planning skill and Plan Dispatcher.

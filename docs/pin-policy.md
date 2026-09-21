@@ -21,11 +21,27 @@ Package name/version mismatches and hooks fail validation; description drift is
 advisory. Run the script locally with `GH_TOKEN` in the environment when private
 source access is needed.
 
+`whichguy/mcp-gas-deploy` is a qualified MCP-only exception. It is recognized
+only as `mcp-gas-deploy` at `marketplace/mcp-gas-deploy`; arbitrary
+`mcpServers` declarations never bypass the normal skill-body checks. Its default
+verification requires both adapters to reference `./.mcp.json`, rejects skill,
+hook, dependency, command, and agent declarations, and requires the parsed
+Claude and Codex manifests to match exactly with
+`interface.capabilities: ["Read", "Write"]`. It then checks one exact `npx`
+launcher with `startup_timeout_sec: 180`. That launcher uses
+`-y github:whichguy/mcp-gas-deploy#` followed by a lowercase 40-character
+immutable runtime source revision. The runtime commit must exist and be an
+ancestor of the newer adapter `source.sha`; the source and runtime root
+`package.json` name/version must match the catalog and both adapters. Claude's
+parent MCP process also requires `MCP_TIMEOUT=180000`, as documented in the
+root README.
+
 On every pull request and push, CI also runs
 `python3 scripts/check-release-payload.py --base <base-sha>` against the
 merge-base catalog. It applies the complete-payload check only to new or changed
 entries from the explicit release-payload allowlist: `whichguy/skill-craft`,
-`whichguy/workflow-engine`, and `whichguy/backchain`. Unchanged legacy entries are not silently upgraded
+`whichguy/workflow-engine`, `whichguy/backchain`, and
+`whichguy/mcp-gas-deploy`. Unchanged legacy entries are not silently upgraded
 to that stronger contract. Removals are reported without payload verification.
 A same-name change from the native Skill Craft source to an external source
 fails: it requires separately qualified migration review and cannot use a
@@ -51,6 +67,12 @@ The verifier covers the catalog's current default skill layout:
 `<package root>/skills/<manifest name>/SKILL.md`. Explicit manifest `skills`
 declarations require extending the verifier with a tested path contract first;
 an unsupported declaration fails visibly instead of guessing its location.
+The qualified MCP-only package instead has exactly five payload files:
+`LICENSE`, `README.md`, `.claude-plugin/plugin.json`,
+`.codex-plugin/plugin.json`, and `.mcp.json`. Full-payload verification rejects
+all extra files, including hook, skill, and dependency trees. It verifies that
+immutable adapter source payload only; it does not claim to resolve or execute
+the complete npm runtime dependency graph selected by the launcher.
 
 ## Immutable commit pins
 
@@ -73,12 +95,13 @@ validator rejects other providers until their verification path is implemented.
 
 ## Private source access
 
-`whichguy/backchain` is private. Installing that entry requires GitHub access to
-that repository. This catalog does not grant access or change visibility. Public
-users can install the other entries only if they can read their source repositories.
-The remote CI check uses the optional `MARKETPLACE_READ_TOKEN` Actions secret,
-falling back to the workflow token. For a private cross-repository source, configure
-a token with read access to that source; the default workflow token cannot grant
-that access. No credential is stored in this repository. A 404 from the contents
-API can indicate missing access as well as a missing file, and validation fails
-rather than silently skipping that entry.
+`whichguy/backchain` and `whichguy/mcp-gas-deploy` are private. Installing either
+entry requires GitHub access to that repository. This catalog does not grant
+access or change visibility. Public users can install the other entries only if
+they can read their source repositories. The remote CI check uses the optional
+`MARKETPLACE_READ_TOKEN` Actions secret, falling back to the workflow token.
+For either private cross-repository source, configure that token with read access
+to the source; the default workflow token cannot grant that access. No credential
+is stored in this repository. A 404 from the contents API can indicate missing
+access as well as a missing file, and validation fails rather than silently
+skipping that entry.
