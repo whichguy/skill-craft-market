@@ -3,7 +3,7 @@
 **No second marketplace.json here.** For native Grok plugins, use the generated
 `.grok-plugin/marketplace.json` in the **skill-craft source repository**. It points
 to the 18 existing `plugins/<leaf>` packages using same-repository local sources.
-This sibling repo retains the Claude/Codex release pins.
+This sibling repo retains Claude/Codex release metadata and immutable sources where applicable.
 
 ## install skill (recommended)
 

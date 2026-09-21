@@ -31,9 +31,9 @@ skill-craft-market/                  # catalog / adapters
   docs/pin-policy.md
 ```
 
-## Marketplace pin shape
+## Marketplace package source shape
 
-Claude and Codex pin the **plugin view**, not the bare skill leaf. This historical
+Claude and Codex select the **plugin view**, not the bare skill leaf. This historical
 example illustrates the shape; current versions, release tags, and immutable
 SHAs are recorded in [the catalog](../.claude-plugin/marketplace.json):
 
@@ -50,7 +50,10 @@ SHAs are recorded in [the catalog](../.claude-plugin/marketplace.json):
 }
 ```
 
-Production pins require **full verified commit SHAs**. An optional `ref` records a release tag or branch for reachability checks. Advance a pin when that leaf’s content or package version changes at a released tag or a verified published commit (see docs/pin-policy.md).
+Immutable production entries require **full verified commit SHAs**. The
+coordinated `ask-agent`, `shiploop`, `improve`, and `backchain` releases instead
+use `ref: "main"` without a SHA; their semantic package version must advance
+before a marketplace refresh. See [pin policy](pin-policy.md).
 
 **Do not** set `"path": "skills/skill-interop"` — Claude plugin validate requires
 `.claude-plugin/plugin.json` in the package root.
@@ -70,11 +73,11 @@ skill-craft/skills/<leaf>/  →  ~/.grok/skills/<leaf>
 
 Use skill-craft `./install.sh --skill <leaf>`.
 
-## Adding a skill pin
+## Adding a marketplace skill entry
 
 1. Land the skill under `skill-craft/skills/<leaf>/`.
 2. Add Claude view `skill-craft/plugins/<leaf>/` (`plugin.json` + materialized skill tree).
-3. Add a pin entry to root `.claude-plugin/marketplace.json` only (`path: plugins/<leaf>`).
+3. Add an entry to root `.claude-plugin/marketplace.json` only (`path: plugins/<leaf>`), using the immutable default unless the entry belongs to the bounded rolling workflow set.
 4. Update faces READMEs only if host install notes differ.
 5. Do **not** copy `SKILL.md` or prompts into this repo.
 
@@ -90,8 +93,9 @@ symlinks (`install.sh`) or Claude-compatible marketplace adapters that reference
 Some catalog entries (e.g. **lennox-s40**) pin a **standalone** repo. skill-craft must **not** also ship `skills/<same-name>/`. Install skill-dir from the standalone clone’s `install.sh`.
 
 **until-loop** is a separate external package from `whichguy/until-loop`.
-**improve** remains canonical in `skill-craft/skills/improve`, pinned through
-`plugins/improve` at the immutable release recorded in the catalog. Its bundled runtime does not create
+**improve** remains canonical in `skill-craft/skills/improve`, released through
+`plugins/improve` from published `main` with its semantic version recorded in the
+catalog. Its bundled runtime does not create
 another standalone Until Loop skill leaf or change ownership of Improve.
 
 **workflow** is the marketplace identity for the standalone

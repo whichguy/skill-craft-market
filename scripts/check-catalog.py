@@ -16,6 +16,18 @@ from urllib.parse import urlparse
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 SKILL_CRAFT_URL = "https://github.com/whichguy/skill-craft.git"
+BACKCHAIN_URL = "https://github.com/whichguy/backchain.git"
+
+# These four packages are released as one coordinated workflow surface. They
+# deliberately follow their source repositories' published main branch rather
+# than retaining an immutable catalog SHA. Keep this allowlist small: every
+# other catalog entry remains an immutable pin.
+ROLLING_LATEST_SOURCES: dict[str, tuple[str, str, str | None]] = {
+    "ask-agent": ("git-subdir", SKILL_CRAFT_URL, "plugins/ask-agent"),
+    "shiploop": ("git-subdir", SKILL_CRAFT_URL, "plugins/shiploop"),
+    "improve": ("git-subdir", SKILL_CRAFT_URL, "plugins/improve"),
+    "backchain": ("url", BACKCHAIN_URL, None),
+}
 
 
 def is_text(value: Any) -> bool:
@@ -47,6 +59,31 @@ def valid_subdir(value: Any) -> bool:
     if not is_text(value) or "\\" in value or value.startswith("/"):
         return False
     return all(part not in ("", ".", "..") for part in value.split("/"))
+
+
+def rolling_latest_errors(name: Any, source: dict[str, Any]) -> list[str]:
+    """Return policy errors for one explicitly allowed rolling-latest entry."""
+    if not isinstance(name, str):
+        return []
+    expected = ROLLING_LATEST_SOURCES.get(name)
+    if expected is None:
+        return []
+    source_type, url, path = expected
+    errors: list[str] = []
+    if source.get("source") != source_type:
+        errors.append(f"rolling-latest {name} must use source.source {source_type!r}")
+    if source.get("url") != url:
+        errors.append(f"rolling-latest {name} must use source.url {url!r}")
+    if path is None:
+        if "path" in source:
+            errors.append(f"rolling-latest {name} must not define source.path")
+    elif source.get("path") != path:
+        errors.append(f"rolling-latest {name} must use source.path {path!r}")
+    if source.get("ref") != "main":
+        errors.append(f"rolling-latest {name} must use source.ref 'main'")
+    if "sha" in source:
+        errors.append(f"rolling-latest {name} must omit source.sha")
+    return errors
 
 
 def catalog_root(catalog: Path) -> Path | None:
@@ -169,9 +206,13 @@ def validate_catalog(data: Any, catalog: Path) -> tuple[list[str], list[dict[str
             parsed = urlparse(source["url"])
             if parsed.scheme != "https" or parsed.netloc != "github.com" or len(parsed.path.strip("/").split("/")) != 2 or parsed.query or parsed.fragment:
                 errors.append(f"{where}: source.url must be a GitHub HTTPS repository URL")
-        sha = source.get("sha")
-        if not is_text(sha) or not SHA.fullmatch(sha):
-            errors.append(f"{where}: source.sha must be a full 40-character commit id")
+        rolling_latest = isinstance(name, str) and name in ROLLING_LATEST_SOURCES
+        rolling_errors = rolling_latest_errors(name, source)
+        errors.extend(f"{where}: {error}" for error in rolling_errors)
+        if not rolling_latest:
+            sha = source.get("sha")
+            if not is_text(sha) or not SHA.fullmatch(sha):
+                errors.append(f"{where}: source.sha must be a full 40-character commit id")
         ref = source.get("ref")
         if "ref" in source and not is_text(ref):
             errors.append(f"{where}: source.ref must be a non-empty string when present")

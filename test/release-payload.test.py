@@ -76,6 +76,21 @@ def plugin(
     }
 
 
+def rolling_plugin(name: str) -> dict[str, object]:
+    item = plugin(name, native=name != "backchain")
+    source = item["source"]
+    assert isinstance(source, dict)
+    source.pop("sha")
+    source["ref"] = "main"
+    if name == "backchain":
+        source.update(
+            source="url",
+            url="https://github.com/whichguy/backchain.git",
+        )
+        source.pop("path", None)
+    return item
+
+
 def catalog(plugins: list[dict[str, object]]) -> dict[str, object]:
     return {
         "name": "fixture-market",
@@ -188,7 +203,7 @@ class ReleasePayloadTest(unittest.TestCase):
         self.assertTrue(full_payload)
         self.assertEqual(transport.timeout, 60)
         self.assertIn(
-            "strict payload verification passed for 2 changed/new full-payload-gated entries",
+            "strict payload verification passed for 2 selected full-payload-gated entries",
             stdout,
         )
 
@@ -212,7 +227,7 @@ class ReleasePayloadTest(unittest.TestCase):
         self.assertEqual([entry["name"] for entry in selected["plugins"]], ["workflow"])
         self.assertTrue(full_payload)
         self.assertIn(
-            "strict payload verification passed for 1 changed/new full-payload-gated entry",
+            "strict payload verification passed for 1 selected full-payload-gated entry",
             stdout,
         )
 
@@ -230,6 +245,21 @@ class ReleasePayloadTest(unittest.TestCase):
         selected, _, full_payload = fake.calls[0]
         self.assertEqual([entry["name"] for entry in selected["plugins"]], ["backchain"])
         self.assertTrue(full_payload)
+
+    def test_unchanged_rolling_latest_entry_gets_strict_payload_check(self) -> None:
+        rolling = rolling_plugin("ask-agent")
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, base_ref = self.make_repo(Path(tmp), catalog([rolling]))
+            fake = FakePins()
+
+            result, stdout, stderr = self.run_gate(repo, base_ref, fake)
+
+        self.assertEqual(result, 0, stderr)
+        self.assertEqual(len(fake.calls), 1)
+        selected, _, full_payload = fake.calls[0]
+        self.assertEqual([entry["name"] for entry in selected["plugins"]], ["ask-agent"])
+        self.assertTrue(full_payload)
+        self.assertIn("selected full-payload-gated entry", stdout)
 
     def test_unchanged_legacy_and_removal_do_not_trigger_strict_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

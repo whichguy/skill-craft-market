@@ -1,7 +1,9 @@
 # skill-craft-market
 
-**Claude-compatible plugin catalog for Claude Code and Codex** that pins packages from
-[skill-craft](https://github.com/whichguy/skill-craft) (and allowed external repos).
+**Claude-compatible plugin catalog for Claude Code and Codex** with immutable
+external packages and rolling latest releases for Ask-Agent, ShipLoop, Improve,
+and Backchain from [skill-craft](https://github.com/whichguy/skill-craft) and its
+coordinated source repository.
 **Catalog only** — does not vendor skill prompt bodies.
 
 **No hooks.** This marketplace never installs plan-oversight, ExitPlanMode soft_exit,
@@ -15,7 +17,7 @@ or residual skill-fire. Those are **L-Policy** → [plan-oversight](https://gith
 | **install plugin** | Host plugin cache from its supported catalog | Claude `plugin install`, Codex `plugin add`; Grok/Cursor use source-repo adapters |
 | **register policy** | ExitPlanMode / Stop hooks | plan-oversight `register-hooks` (not this repo) |
 
-Pick **one track per leaf** on a machine: plugin **or** skill-dir, not both (dev on `main` → skill-dir; consumers wanting pins → plugin).
+Pick **one track per leaf** on a machine: plugin **or** skill-dir, not both (dev on `main` → skill-dir; consumers wanting a released package → plugin).
 
 ## Setup matrix
 
@@ -29,7 +31,7 @@ describes both personal installs and marketplace publication.
 |------|-----|
 | Skills on Grok/Claude/Cursor/Codex/OpenCode (development) | In a skill-craft clone: `./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only` |
 | Skills on Claude (dev) | same skill-dir **or** plugin — not both |
-| Skills on Claude (pinned release) | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
+| Skills on Claude (released package) | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
 | Native Grok/Cursor marketplace | Source repo `whichguy/skill-craft`, using its generated native indexes; see host notes |
 | Suites (review-plan, wiki, …) | **claude-craft** marketplace — not this catalog |
 | ExitPlanMode residual fire | **plan-oversight** register — never this catalog, never `install.sh` |
@@ -76,7 +78,11 @@ claude plugin marketplace update skill-craft-market
 claude plugin install review-coverage@skill-craft-market
 ```
 
-Pin path is always skill-craft **`plugins/<leaf>`** (or external repo root for specials like lennox-s40), at a **full verified commit SHA**, optionally labeled with a release tag or branch.
+Skill-craft packages use **`plugins/<leaf>`** and external root packages omit a
+path. `ask-agent`, `shiploop`, and `improve` follow released `main` through this
+catalog; `backchain` does the same from its root repository. The catalog keeps
+their semantic release versions, and the verifier records the exact resolved SHA
+on every check. Other entries retain a full immutable commit SHA.
 
 Canonical file: **`.claude-plugin/marketplace.json`** (only committed catalog).
 
@@ -93,9 +99,9 @@ cd skill-craft
 
 [`until-loop`](https://github.com/whichguy/until-loop) is a standalone package
 from its dedicated repository, pinned to the immutable commit recorded in
-[the catalog](.claude-plugin/marketplace.json). Improve remains a
-canonical skill-craft package with its own bundled Until Loop runtime and
-independent release pin; see its release section below.
+[the catalog](.claude-plugin/marketplace.json). Improve remains a canonical
+skill-craft package with its own bundled Until Loop runtime and independent
+rolling release; see its release section below.
 
 ```sh
 # Codex: add the marketplace once, then install Until Loop.
@@ -111,7 +117,7 @@ claude plugin install until-loop@skill-craft-market
 
 ## Private source: backchain
 
-The Backchain 0.3.5 plugin contains the planning skill and Plan Dispatcher.
+The Backchain 0.3.6 plugin contains the planning skill and Plan Dispatcher.
 In Codex, select `$backchain:backchain` or `$backchain:plan-dispatcher`;
 in Claude, use `/backchain:backchain` or `/backchain:plan-dispatcher`.
 
@@ -133,18 +139,21 @@ cd ~/src/lennox-s40 && ./install.sh    # skill-dir
 Standalone **Until Loop** is also available as `until-loop@skill-craft-market`
 from [whichguy/until-loop](https://github.com/whichguy/until-loop), using the
 immutable catalog pin. **Improve** retains its canonical skill-craft source and its own
-release pin; installing Until Loop does not replace Improve.
+rolling release; installing Until Loop does not replace Improve.
 
 Normative release steps: skill-craft [`docs/skill-release-checklist.md`](https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.md).  
 Market-side notes: [docs/pin-policy.md](docs/pin-policy.md).
 
-**Do not bulk-retarget** umbrella tags when leaf content is unchanged vs tip.
+Immutable entries are not bulk-retargeted when leaf content is unchanged. The
+four coordinated workflow entries refresh from `main` after their source release
+version changes; see [docs/pin-policy.md](docs/pin-policy.md#rolling-workflow-releases).
 
 ## Faces
 
 Host notes under `faces/{claude,grok,cursor,codex,hermes}/` point at the setup matrix.
 No second marketplace.json under faces. Grok/Cursor indexes live in the source
-repo and reference its existing packages; this repo retains only release pins.
+repo and reference its existing packages; this repo retains release metadata and
+immutable sources where applicable.
 
 ## Layout
 
@@ -153,8 +162,9 @@ See [docs/package-layout.md](docs/package-layout.md).
 ## Improve release candidate
 
 `improve@skill-craft-market` publishes the standalone Improve workflow from
-`skill-craft/plugins/improve`, at the version and immutable SHA recorded in
-[the catalog](.claude-plugin/marketplace.json). It includes the
+`skill-craft/plugins/improve`, at the release version recorded in
+[the catalog](.claude-plugin/marketplace.json) and resolved from published
+`main` during validation. It includes the
 compatible Until Loop runtime, so installing this plugin does not require a
 separate Until Loop checkout. The package remains a release candidate; catalog
 discovery and isolated runtime tests do not establish full execution on every
@@ -169,9 +179,10 @@ claude plugin install improve@skill-craft-market
 ```
 
 Choose one installation track. If Improve is already exposed through a local
-skill-directory pilot, keep that pilot or deliberately switch to this pinned
-plugin; do not install a duplicate merely to update the catalog. These commands
-are for hosts where the marketplace is already registered.
+skill-directory pilot, keep that pilot or deliberately switch to this marketplace
+plugin; do not install a duplicate merely to update the catalog. Refresh the
+marketplace and update/reinstall the plugin after a new Improve release version.
+These commands are for hosts where the marketplace is already registered.
 
 Start with `Dry-run $improve:improve on these changes without writing files.` See the
 [Improve guide](https://github.com/whichguy/skill-craft/blob/b6486f7a09eeafd5bd1e8478e4d4211a4ed3747a/skills/improve/README.md)

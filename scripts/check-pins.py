@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify immutable catalog pins and their conventional advertised skill bodies.
+"""Verify catalog sources and their conventional advertised skill bodies.
 
 Current packages omit an explicit ``skills`` manifest field and place the body
 at ``<package root>/skills/<plugin name>/SKILL.md``. An explicit future layout
@@ -21,6 +21,7 @@ from urllib.parse import quote, urlparse
 
 
 SHA = re.compile(r"^[0-9a-fA-F]{40}$")
+SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?(?:\+[0-9A-Za-z][0-9A-Za-z.-]*)?$")
 FRONTMATTER_FIELD = re.compile(r"^([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 GITHUB_API = "https://api.github.com"
 SCRIPT_SUFFIX_INTERPRETERS = {
@@ -40,6 +41,16 @@ CODEX_INTERFACE_TEXT_FIELDS = (
 CODEX_ADAPTER_REPOSITORIES = frozenset(
     ("whichguy/skill-craft", "whichguy/workflow-engine")
 )
+
+# These coordinated workflow packages deliberately track their source main
+# branch. The catalog validator restricts this no-SHA form to the same set;
+# repeat it here because this file is also a standalone verifier.
+ROLLING_LATEST_SOURCES: dict[str, tuple[str, str, str | None]] = {
+    "ask-agent": ("git-subdir", "whichguy/skill-craft", "plugins/ask-agent"),
+    "shiploop": ("git-subdir", "whichguy/skill-craft", "plugins/shiploop"),
+    "improve": ("git-subdir", "whichguy/skill-craft", "plugins/improve"),
+    "backchain": ("url", "whichguy/backchain", None),
+}
 
 # Immutable native package entrypoints for this marketplace family. This map
 # is intentionally local to the pin verifier: validating a historical SHA must
@@ -66,6 +77,9 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     },
 }
 BACKCHAIN_MULTI_SKILL_REPOSITORY = "whichguy/backchain"
+# This is the historical immutable package exception. A floating Backchain
+# release validates the secondary card's semantic metadata and helper rather
+# than baking each future paired version into this verifier.
 BACKCHAIN_MULTI_SKILL_PRIMARY = ("backchain", "0.3.5")
 BACKCHAIN_MULTI_SKILL_SECONDARY = ("plan-dispatcher", "0.1.1")
 BACKCHAIN_MULTI_SKILL_ENTRYPOINTS = {"scripts/dispatch.js": "node"}
@@ -78,6 +92,46 @@ _IMPROVE_EPHEMERAL_RUNTIME_DECLARATION = re.compile(
 
 def is_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def rolling_latest_error(name: str, source: dict[str, Any], repo: str) -> str | None:
+    """Validate the bounded no-SHA source form used by coordinated packages."""
+    expected = ROLLING_LATEST_SOURCES.get(name)
+    if expected is None:
+        return None
+    source_type, expected_repo, expected_path = expected
+    if source.get("source") != source_type:
+        return f"rolling-latest source.source must be {source_type!r}"
+    if repo.casefold() != expected_repo:
+        return f"rolling-latest source.url must identify {expected_repo!r}"
+    if expected_path is None:
+        if "path" in source:
+            return "rolling-latest root source must not define source.path"
+    elif source.get("path") != expected_path:
+        return f"rolling-latest source.path must be {expected_path!r}"
+    if source.get("ref") != "main":
+        return "rolling-latest source.ref must be 'main'"
+    if "sha" in source:
+        return "rolling-latest source must omit source.sha"
+    return None
+
+
+def resolve_rolling_ref(
+    transport: Any,
+    repo: str,
+    ref: str,
+    cache: dict[tuple[str, str], str],
+) -> str:
+    """Resolve one mutable ref once, then bind every later fetch to that SHA."""
+    key = (repo.casefold(), ref)
+    if key in cache:
+        return cache[key]
+    resolved = transport.get_json(commit_url(repo, ref))
+    sha = resolved.get("sha") if isinstance(resolved, dict) else None
+    if not is_text(sha) or not SHA.fullmatch(sha):
+        raise ValueError("commit response has no full 40-character sha")
+    cache[key] = sha
+    return sha
 
 
 def valid_subdir(value: Any) -> bool:
@@ -228,13 +282,21 @@ def native_script_entrypoints(name: str, skill_body: str) -> dict[str, str] | No
 
 
 def permits_backchain_secondary_skill(
-    repo: str, package_root: str, manifest: dict[str, Any]
+    repo: str,
+    package_root: str,
+    manifest: dict[str, Any],
+    *,
+    rolling_backchain: bool = False,
 ) -> bool:
-    """Allow Backchain 0.3.5's separately versioned dispatcher card only."""
-    return (
+    """Allow the qualified dispatcher card for a static or rolling Backchain package."""
+    is_backchain_root = (
         repo == BACKCHAIN_MULTI_SKILL_REPOSITORY
         and package_root == ""
-        and (manifest.get("name"), manifest.get("version")) == BACKCHAIN_MULTI_SKILL_PRIMARY
+        and manifest.get("name") == BACKCHAIN_MULTI_SKILL_PRIMARY[0]
+    )
+    return is_backchain_root and (
+        rolling_backchain
+        or (manifest.get("name"), manifest.get("version")) == BACKCHAIN_MULTI_SKILL_PRIMARY
     )
 
 
@@ -259,15 +321,41 @@ def backchain_secondary_metadata_version(skill_body: str) -> str | None:
     return None
 
 
+def backchain_secondary_kind(skill_body: str) -> str | None:
+    """Read the dispatcher's metadata.skill_craft.kind without a YAML dependency."""
+    in_metadata = False
+    in_skill_craft = False
+    for line in skill_body.splitlines()[1:]:
+        if line.strip() in ("---", "..."):
+            break
+        if line == "metadata:":
+            in_metadata = True
+            continue
+        if in_metadata and line and not line[0].isspace():
+            break
+        if in_metadata and line == "  skill_craft:":
+            in_skill_craft = True
+            continue
+        if in_skill_craft:
+            if line and not line.startswith("    "):
+                break
+            match = re.fullmatch(r" {4}kind:(?:[ \t]*(.*))?", line)
+            if match is not None:
+                return (match.group(1) or "").strip().strip("'\"")
+    return None
+
+
 def validate_backchain_secondary_skill(
     transport: Any,
     repo: str,
     sha: str,
     prefix: str,
     files: dict[str, dict[str, Any]],
+    *,
+    expected_version: str | None,
 ) -> None:
-    """Validate the immutable dispatcher contract paired with Backchain 0.3.5."""
-    secondary_name, secondary_version = BACKCHAIN_MULTI_SKILL_SECONDARY
+    """Validate Backchain's paired Plan Dispatcher card and bundled helper."""
+    secondary_name, _ = BACKCHAIN_MULTI_SKILL_SECONDARY
     secondary_path = f"skills/{secondary_name}/SKILL.md"
     try:
         secondary_body = fetch_file(transport, repo, prefix + secondary_path, sha)
@@ -282,10 +370,20 @@ def validate_backchain_secondary_skill(
             f"{frontmatter.get('name')!r} does not match"
         )
     metadata_version = backchain_secondary_metadata_version(secondary_body)
-    if metadata_version != secondary_version:
+    if expected_version is not None and metadata_version != expected_version:
         raise ValueError(
             f"qualified secondary skill {secondary_path} metadata.version "
-            f"{metadata_version!r} != expected {secondary_version!r}"
+            f"{metadata_version!r} != expected {expected_version!r}"
+        )
+    if not is_text(metadata_version) or not SEMVER.fullmatch(metadata_version):
+        raise ValueError(
+            f"qualified secondary skill {secondary_path} metadata.version "
+            f"{metadata_version!r} is not a semantic version"
+        )
+    if backchain_secondary_kind(secondary_body) != "script-backed":
+        raise ValueError(
+            f"qualified secondary skill {secondary_path} metadata.skill_craft.kind "
+            "must be 'script-backed'"
         )
     for relative, expected in BACKCHAIN_MULTI_SKILL_ENTRYPOINTS.items():
         problem = remote_script_problem(
@@ -424,12 +522,20 @@ def advertised_skill_path(package_root: str, manifest: dict[str, Any], name: str
     return f"{prefix}skills/{manifest_name}/SKILL.md"
 
 
-def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
-                   manifest: dict[str, Any], skill_body: str) -> None:
-    """Release-only gate for the complete pinned tree; never executes its code.
+def verify_payload(
+    transport: Any,
+    repo: str,
+    sha: str,
+    package_root: str,
+    manifest: dict[str, Any],
+    skill_body: str,
+    *,
+    rolling_backchain: bool = False,
+) -> None:
+    """Release-only gate for a complete resolved tree; never executes its code.
 
-    Kept opt-in while old released pins are being migrated. A passing legacy
-    manifest/body check is not represented as passing this stronger contract.
+    This remains opt-in for old immutable pins while they are being migrated.
+    Rolling sources call it unconditionally after binding their ref to one SHA.
     """
     payload = transport.get_json(tree_url(repo, sha))
     if not isinstance(payload, dict) or payload.get("truncated") is not False:
@@ -453,7 +559,12 @@ def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
         if item.get("type") == "blob":
             files[relative] = item
     name = manifest["name"]
-    permits_secondary_skill = permits_backchain_secondary_skill(repo, package_root, manifest)
+    permits_secondary_skill = permits_backchain_secondary_skill(
+        repo,
+        package_root,
+        manifest,
+        rolling_backchain=rolling_backchain,
+    )
     required = ["LICENSE", "README.md", ".claude-plugin/plugin.json", f"skills/{name}/SKILL.md"]
     if permits_secondary_skill:
         secondary_name, _ = BACKCHAIN_MULTI_SKILL_SECONDARY
@@ -476,7 +587,17 @@ def verify_payload(transport: Any, repo: str, sha: str, package_root: str,
             raise ValueError(f"unexpected additional advertised skill: {path}")
     validate_script_payload(transport, repo, sha, prefix, name, skill_body, files)
     if permits_secondary_skill:
-        validate_backchain_secondary_skill(transport, repo, sha, prefix, files)
+        expected_secondary_version = (
+            None if rolling_backchain else BACKCHAIN_MULTI_SKILL_SECONDARY[1]
+        )
+        validate_backchain_secondary_skill(
+            transport,
+            repo,
+            sha,
+            prefix,
+            files,
+            expected_version=expected_secondary_version,
+        )
     if requires_codex_adapter:
         codex = json.loads(fetch_file(transport, repo, prefix + ".codex-plugin/plugin.json", sha))
         if not isinstance(codex, dict):
@@ -519,6 +640,7 @@ def verify_catalog(
         fail("catalog plugins must be a non-empty array")
         return failures, advisories
 
+    resolved_rolling_refs: dict[tuple[str, str], str] = {}
     for index, plugin in enumerate(plugins):
         where = f"plugins[{index}]"
         if not isinstance(plugin, dict):
@@ -530,16 +652,28 @@ def verify_catalog(
             fail(f"{where}: {exc}")
             continue
 
-        sha = source.get("sha")
-        if not is_text(sha) or not SHA.fullmatch(sha):
-            fail(f"{name}: source.sha must be a full 40-character commit id")
-            continue
         ref = source.get("ref")
-        if "ref" in source and not is_text(ref):
-            fail(f"{name}: source.ref must be a non-empty string when present")
-            continue
+        floating = name in ROLLING_LATEST_SOURCES
+        if floating:
+            error = rolling_latest_error(name, source, repo)
+            if error is not None:
+                fail(f"{name}: {error}")
+                continue
+            try:
+                sha = resolve_rolling_ref(transport, repo, "main", resolved_rolling_refs)
+            except Exception as exc:
+                fail(f"{name}: cannot resolve floating ref 'main': {exc}")
+                continue
+        else:
+            sha = source.get("sha")
+            if not is_text(sha) or not SHA.fullmatch(sha):
+                fail(f"{name}: source.sha must be a full 40-character commit id")
+                continue
+            if "ref" in source and not is_text(ref):
+                fail(f"{name}: source.ref must be a non-empty string when present")
+                continue
 
-        if ref:
+        if not floating and ref:
             try:
                 resolved = transport.get_json(commit_url(repo, ref))
                 if not isinstance(resolved, dict) or not is_text(resolved.get("sha")):
@@ -553,7 +687,7 @@ def verify_catalog(
             except Exception as exc:
                 fail(f"{name}: cannot verify sha {sha} against ref {ref}: {exc}")
                 continue
-        else:
+        elif not floating:
             try:
                 transport.get_json(commit_url(repo, sha))
             except Exception as exc:
@@ -561,15 +695,23 @@ def verify_catalog(
                 continue
 
         package_root = source.get("path", "")
-        print(
-            f"check {name} path={package_root!r} ref={ref!r} sha={sha!r} "
-            f"catalog_version={plugin.get('version')!r}",
-            file=stdout,
-        )
+        resolution_label = f"resolved SHA {sha}" if floating else f"sha {sha}"
+        if floating:
+            print(
+                f"check {name} path={package_root!r} source=floating ref='main' "
+                f"resolved_sha={sha!r} catalog_version={plugin.get('version')!r}",
+                file=stdout,
+            )
+        else:
+            print(
+                f"check {name} path={package_root!r} ref={ref!r} sha={sha!r} "
+                f"catalog_version={plugin.get('version')!r}",
+                file=stdout,
+            )
         try:
             manifest = json.loads(fetch_file(transport, repo, manifest_path, sha))
         except Exception as exc:
-            fail(f"{name}: cannot fetch plugin.json at {manifest_path} at sha {sha}: {exc}")
+            fail(f"{name}: cannot fetch plugin.json at {manifest_path} at {resolution_label}: {exc}")
             continue
         if not isinstance(manifest, dict):
             fail(f"{name}: plugin.json at {manifest_path} must be a JSON object")
@@ -581,7 +723,7 @@ def verify_catalog(
         if str(catalog_version) != str(manifest_version):
             fail(
                 f"{name}: catalog version {catalog_version} != plugin.json version "
-                f"{manifest_version} at sha {sha}"
+                f"{manifest_version} at {resolution_label}"
             )
             valid_manifest = False
         if manifest.get("name") != name:
@@ -597,7 +739,7 @@ def verify_catalog(
         manifest_description = (manifest.get("description") or "").strip()
         if catalog_description and manifest_description and catalog_description != manifest_description:
             advise(
-                f"{name}: catalog description differs from plugin.json description at sha {sha} "
+                f"{name}: catalog description differs from plugin.json description at {resolution_label} "
                 "(not a hard fail)"
             )
 
@@ -605,7 +747,7 @@ def verify_catalog(
             skill_path = advertised_skill_path(package_root, manifest, name)
             skill_body = fetch_file(transport, repo, skill_path, sha)
         except Exception as exc:
-            fail(f"{name}: cannot fetch advertised skill body at sha {sha}: {exc}")
+            fail(f"{name}: cannot fetch advertised skill body at {resolution_label}: {exc}")
             continue
         frontmatter = parse_frontmatter(skill_body)
         if frontmatter is None:
@@ -624,14 +766,30 @@ def verify_catalog(
                 f"!= plugin.json version {manifest_version!r}"
             )
             continue
-        if full_payload:
+        payload_checked = full_payload or floating
+        if payload_checked:
             try:
-                verify_payload(transport, repo, sha, package_root, manifest, skill_body)
+                verify_payload(
+                    transport,
+                    repo,
+                    sha,
+                    package_root,
+                    manifest,
+                    skill_body,
+                    rolling_backchain=floating,
+                )
             except Exception as exc:
-                fail(f"{name}: complete payload at sha {sha}: {exc}")
+                fail(f"{name}: complete payload at {resolution_label}: {exc}")
                 continue
-        print(f"OK   {name} version={manifest_version} body={skill_path}"
-              f" payload={'checked' if full_payload else 'not-checked'}", file=stdout)
+        if floating:
+            print(
+                f"OK   {name} version={manifest_version} body={skill_path} "
+                f"source=floating ref=main resolved_sha={sha} payload=checked",
+                file=stdout,
+            )
+        else:
+            print(f"OK   {name} version={manifest_version} body={skill_path}"
+                  f" payload={'checked' if payload_checked else 'not-checked'}", file=stdout)
 
     return failures, advisories
 
@@ -646,7 +804,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--timeout", type=int, default=60, help="GitHub request timeout in seconds")
     parser.add_argument("--full-payload", action="store_true",
-                        help="release gate: also verify license, README, complete tree and required Codex adapter at each pinned SHA")
+                        help="release gate: also verify license, README, complete tree and required Codex adapter at each resolved SHA")
     return parser.parse_args()
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strictly verify changed release payloads from qualified catalog sources."""
+"""Strictly verify changed and rolling release payloads from qualified sources."""
 
 from __future__ import annotations
 
@@ -25,6 +25,10 @@ BACKCHAIN_REPOSITORY = "whichguy/backchain"
 FULL_PAYLOAD_REPOSITORIES = frozenset(
     (NATIVE_REPOSITORY, WORKFLOW_ENGINE_REPOSITORY, BACKCHAIN_REPOSITORY)
 )
+# A catalog diff cannot describe changes to these mutable refs. They are always
+# selected so the strict checker binds and verifies the current published main
+# commit on every release-payload invocation.
+ROLLING_LATEST_NAMES = frozenset(("ask-agent", "shiploop", "improve", "backchain"))
 
 
 class GateError(RuntimeError):
@@ -82,6 +86,16 @@ def native_skill_craft_entry(entry: dict[str, Any]) -> bool:
 def full_payload_entry(entry: dict[str, Any]) -> bool:
     """Return whether an entry is covered by the strict release-payload gate."""
     return repository_identity(entry) in FULL_PAYLOAD_REPOSITORIES
+
+
+def rolling_latest_entry(entry: dict[str, Any]) -> bool:
+    """Return whether an entry uses the bounded no-SHA rolling form."""
+    source = entry.get("source")
+    return (
+        entry.get("name") in ROLLING_LATEST_NAMES
+        and isinstance(source, dict)
+        and "sha" not in source
+    )
 
 
 def entries_by_name(data: Any, label: str) -> dict[str, dict[str, Any]]:
@@ -217,7 +231,11 @@ def run_gate(
         current[name]
         for name in sorted(current)
         if full_payload_entry(current[name])
-        and (name not in prior or canonical_json(current[name]) != canonical_json(prior[name]))
+        and (
+            rolling_latest_entry(current[name])
+            or name not in prior
+            or canonical_json(current[name]) != canonical_json(prior[name])
+        )
     ]
     if not selected:
         print("release-payload: no changed or new full-payload-gated entries", file=stdout)
@@ -244,7 +262,7 @@ def run_gate(
         return 1
     print(
         f"release-payload: strict payload verification passed for {len(selected)} "
-        f"changed/new full-payload-gated entr{'y' if len(selected) == 1 else 'ies'} "
+        f"selected full-payload-gated entr{'y' if len(selected) == 1 else 'ies'} "
         f"({advisories} advisory(ies))",
         file=stdout,
     )

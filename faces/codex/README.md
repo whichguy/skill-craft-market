@@ -1,6 +1,6 @@
 # Codex face — skill-craft-market
 
-**No second marketplace.json here.** Codex supports the root Claude-compatible catalog. Choose marketplace plugins for pinned packages or **skill-dir** for development; use one track per leaf.
+**No second marketplace.json here.** Codex supports the root Claude-compatible catalog. Choose marketplace plugins for released packages or **skill-dir** for development; use one track per leaf.
 
 ## install skill (recommended)
 

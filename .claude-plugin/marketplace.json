@@ -4,7 +4,7 @@
     "name": "whichguy",
     "url": "https://github.com/whichguy"
   },
-  "description": "Claude-compatible plugin catalog for Claude Code and Codex, pinning skill-craft and allowed external skill packages. Portable skill-dir installation uses skill-craft ./install.sh. No hooks. Skill source of truth: whichguy/skill-craft, except external pins.",
+  "description": "Claude-compatible plugin catalog for Claude Code and Codex, with immutable external packages and rolling latest releases for the coordinated workflow packages. Portable skill-dir installation uses skill-craft ./install.sh. No hooks. Skill source of truth: whichguy/skill-craft, except external packages.",
   "plugins": [
     {
       "name": "architect",
@@ -29,15 +29,14 @@
     {
       "name": "backchain",
       "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable.",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "author": {
         "name": "whichguy"
       },
       "source": {
         "source": "url",
         "url": "https://github.com/whichguy/backchain.git",
-        "ref": "main",
-        "sha": "38c6b44a239a2d82949a3b161a343796ff863c9d"
+        "ref": "main"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -371,7 +370,7 @@
     {
       "name": "shiploop",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
-      "version": "0.18.16",
+      "version": "0.18.18",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -380,8 +379,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/shiploop",
-        "ref": "shiploop-v0.18.16",
-        "sha": "056b0ab4601dd93bda325186b126601f7635ba79"
+        "ref": "main"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -392,7 +390,7 @@
     {
       "name": "improve",
       "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
-      "version": "0.2.0-rc.4",
+      "version": "0.2.0-rc.5",
       "author": {
         "name": "whichguy"
       },
@@ -400,8 +398,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/improve",
-        "ref": "main",
-        "sha": "0e8e9927047efcd455a2fc8ae23aff441a734249"
+        "ref": "main"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -432,7 +429,7 @@
     {
       "name": "ask-agent",
       "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
-      "version": "0.6.1",
+      "version": "0.7.1",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -441,8 +438,7 @@
         "source": "git-subdir",
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/ask-agent",
-        "sha": "0a4e4879e06c1afbac361b9029f96518d81b27d7",
-        "ref": "ask-agent-v0.6.1"
+        "ref": "main"
       },
       "policy": {
         "installation": "AVAILABLE",

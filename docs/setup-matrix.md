@@ -33,7 +33,7 @@ adapter has been published, or a local source checkout for development. Cursor
 team import/public submission are separate publication steps. Native source
 indexes expose the source skills; this catalog also includes private Backchain,
 Lennox S40, and standalone Until Loop. Improve remains owned by skill-craft;
-the Until Loop entry does not replace its source or pin. See [package layout](package-layout.md).
+the Until Loop entry does not replace its source or marketplace release. See [package layout](package-layout.md).
 
 ## Suites
 

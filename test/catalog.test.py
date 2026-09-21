@@ -14,10 +14,34 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 CHECK = REPO / "scripts" / "check-catalog.py"
 TEST_SHA = "0123456789abcdef0123456789abcdef01234567"
+SKILL_CRAFT_URL = "https://github.com/whichguy/skill-craft.git"
+BACKCHAIN_URL = "https://github.com/whichguy/backchain.git"
+
+ROLLING_SOURCES: dict[str, tuple[str, str, str | None]] = {
+    "ask-agent": ("git-subdir", SKILL_CRAFT_URL, "plugins/ask-agent"),
+    "shiploop": ("git-subdir", SKILL_CRAFT_URL, "plugins/shiploop"),
+    "improve": ("git-subdir", SKILL_CRAFT_URL, "plugins/improve"),
+    "backchain": ("url", BACKCHAIN_URL, None),
+}
 
 
 def plugin(name: str, source: dict[str, object]) -> dict[str, object]:
     source = {"sha": TEST_SHA, **source}
+    return {
+        "name": name,
+        "description": f"{name} description",
+        "version": "1.0.0",
+        "source": source,
+        "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+        "category": "Productivity",
+    }
+
+
+def rolling_plugin(name: str) -> dict[str, object]:
+    source_type, url, path = ROLLING_SOURCES[name]
+    source: dict[str, object] = {"source": source_type, "url": url, "ref": "main"}
+    if path is not None:
+        source["path"] = path
     return {
         "name": name,
         "description": f"{name} description",
@@ -185,6 +209,48 @@ class CatalogCheckTest(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("source.sha must be a full 40-character commit id", result.stderr)
+
+    def test_accepts_only_the_bounded_rolling_latest_entries_without_sha(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "market"
+            path = self.write_catalog(
+                root,
+                catalog([rolling_plugin(name) for name in sorted(ROLLING_SOURCES)]),
+            )
+
+            result = self.run_check(path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_a_rolling_latest_entry_that_keeps_a_sha_or_moves_off_main(self) -> None:
+        for label, mutate, expected in (
+            (
+                "sha",
+                lambda item: item["source"].update(sha=TEST_SHA),
+                "must omit source.sha",
+            ),
+            (
+                "ref",
+                lambda item: item["source"].update(ref="v1.0.0"),
+                "must use source.ref 'main'",
+            ),
+            (
+                "path",
+                lambda item: item["source"].update(path="plugins/shiploop"),
+                "must use source.path 'plugins/ask-agent'",
+            ),
+        ):
+            with self.subTest(label):
+                with tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp) / "market"
+                    item = rolling_plugin("ask-agent")
+                    mutate(item)
+                    path = self.write_catalog(root, catalog([item]))
+
+                    result = self.run_check(path)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(expected, result.stderr)
 
     def test_rejects_nontext_ref_when_present(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
