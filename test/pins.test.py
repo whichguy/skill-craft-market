@@ -23,6 +23,12 @@ SPEC.loader.exec_module(check_pins)
 PIN = "0123456789abcdef0123456789abcdef01234567"
 REPO_NAME = "example/alpha"
 REF = "v1.2.3"
+ROLLING_SOURCES: dict[str, tuple[str, str, str | None]] = {
+    "ask-agent": ("git-subdir", "whichguy/skill-craft", "plugins/ask-agent"),
+    "shiploop": ("git-subdir", "whichguy/skill-craft", "plugins/shiploop"),
+    "improve": ("git-subdir", "whichguy/skill-craft", "plugins/improve"),
+    "backchain": ("url", "whichguy/backchain", None),
+}
 
 
 def encoded(text: str) -> dict[str, str]:
@@ -51,12 +57,14 @@ def entry(*, sha: Any = PIN, ref: Any = REF, version: str = "1.2.3") -> dict[str
 
 
 def rolling_entry(name: str, version: str) -> dict[str, Any]:
+    source_type, repo, path = ROLLING_SOURCES[name]
     source: dict[str, Any] = {
-        "source": "git-subdir",
-        "url": "https://github.com/whichguy/skill-craft.git",
-        "path": f"plugins/{name}",
+        "source": source_type,
+        "url": f"https://github.com/{repo}.git",
         "ref": "main",
     }
+    if path is not None:
+        source["path"] = path
     return {
         "name": name,
         "description": f"{name} description",
@@ -130,16 +138,53 @@ def valid_responses(
 
 def rolling_responses(plugin: dict[str, Any], sha: str = PIN) -> dict[str, Any]:
     """Build a complete native package response for a rolling-ref fixture."""
-    source = plugin["source"]
     name = plugin["name"]
     version = plugin["version"]
-    repo = "whichguy/skill-craft"
-    prefix = f"{source['path']}/"
+    _, repo, package_root = ROLLING_SOURCES[name]
+    prefix = f"{package_root}/" if package_root else ""
     manifest_body = {
         "name": name,
         "version": version,
         "description": plugin["description"],
     }
+    if name == "backchain":
+        secondary_body = (
+            "---\nname: plan-dispatcher\nmetadata:\n  version: 0.1.2\n"
+            "  skill_craft:\n    kind: script-backed\n---\n\n# Plan dispatcher\n"
+        )
+        paths = [
+            "LICENSE",
+            "README.md",
+            ".claude-plugin/plugin.json",
+            "skills/backchain/SKILL.md",
+            "skills/plan-dispatcher/SKILL.md",
+            "skills/plan-dispatcher/scripts/dispatch.js",
+        ]
+        return {
+            check_pins.commit_url(repo, "main"): {"sha": sha},
+            check_pins.content_url(repo, ".claude-plugin/plugin.json", sha): encoded(
+                __import__("json").dumps(manifest_body)
+            ),
+            check_pins.content_url(repo, "skills/backchain/SKILL.md", sha): encoded(
+                skill_body("backchain", version)
+            ),
+            check_pins.tree_url(repo, sha): {
+                "truncated": False,
+                "tree": [
+                    {"path": path, "type": "blob", "mode": "100644"}
+                    for path in paths
+                ],
+            },
+            check_pins.content_url(repo, "LICENSE", sha): encoded("fixture license\n"),
+            check_pins.content_url(repo, "README.md", sha): encoded("fixture readme\n"),
+            check_pins.content_url(repo, "skills/plan-dispatcher/SKILL.md", sha): encoded(
+                secondary_body
+            ),
+            check_pins.content_url(
+                repo, "skills/plan-dispatcher/scripts/dispatch.js", sha
+            ): encoded("#!/usr/bin/env node\nconsole.log('fixture');\n"),
+        }
+
     codex_body = {
         **manifest_body,
         "skills": "./skills/",
@@ -156,12 +201,15 @@ def rolling_responses(plugin: dict[str, Any], sha: str = PIN) -> dict[str, Any]:
     script_paths = {
         "ask-agent": ("scripts/ask_agent_workspace.py",),
         "shiploop": ("scripts/shiploop",),
+        "improve": (check_pins.IMPROVE_EPHEMERAL_RUNTIME,),
     }[name]
     skill_kind = "mixed" if name == "ask-agent" else "script-backed"
     body = (
         f"---\nname: {name}\nversion: {version}\nmetadata:\n"
         f"  skill_craft:\n    kind: {skill_kind}\n---\n"
     )
+    if name == "improve":
+        body += f'RUNTIME_SCRIPT="$SKILL_ROOT/{check_pins.IMPROVE_EPHEMERAL_RUNTIME}"\n'
     paths = [
         "LICENSE",
         "README.md",
@@ -679,28 +727,75 @@ class PinCheckTest(unittest.TestCase):
         self.assertEqual(failures, 1)
         self.assertIn("source.sha must be a full 40-character commit id", stderr)
 
-    def test_rolling_latest_resolves_shared_main_once_and_checks_the_bound_payload(self) -> None:
-        ask_agent = rolling_entry("ask-agent", "0.7.1")
-        shiploop = rolling_entry("shiploop", "0.18.18")
-        responses = rolling_responses(ask_agent)
-        shiploop_responses = rolling_responses(shiploop)
-        tree = check_pins.tree_url("whichguy/skill-craft", PIN)
-        responses[tree]["tree"].extend(shiploop_responses.pop(tree)["tree"])
-        responses.update(shiploop_responses)
+    def test_rolling_latest_resolves_all_sources_once_and_checks_bound_payloads(self) -> None:
+        plugins = [
+            rolling_entry("ask-agent", "0.7.1"),
+            rolling_entry("shiploop", "0.18.19"),
+            rolling_entry("improve", "0.2.0-rc.5"),
+            rolling_entry("backchain", "0.3.6"),
+        ]
+        responses: dict[str, Any] = {}
+        for plugin in plugins:
+            package_responses = rolling_responses(plugin)
+            _, repo, _ = ROLLING_SOURCES[plugin["name"]]
+            tree = check_pins.tree_url(repo, PIN)
+            if tree in responses:
+                responses[tree]["tree"].extend(package_responses.pop(tree)["tree"])
+            responses.update(package_responses)
         transport = FakeTransport(responses)
 
         failures, advisories, stdout, stderr = self.run_check(
-            {"plugins": [ask_agent, shiploop]}, transport
+            {"plugins": plugins}, transport
         )
 
         self.assertEqual((failures, advisories), (0, 0), stderr)
-        self.assertEqual(
-            transport.calls.count(check_pins.commit_url("whichguy/skill-craft", "main")), 1
+        resolution_calls = [call for call in transport.calls if "/commits/" in call]
+        self.assertCountEqual(
+            resolution_calls,
+            [
+                check_pins.commit_url("whichguy/skill-craft", "main"),
+                check_pins.commit_url("whichguy/backchain", "main"),
+            ],
+        )
+        expected_payload_calls = {
+            url for url in responses if "/contents/" in url or "/git/trees/" in url
+        }
+        self.assertTrue(expected_payload_calls.issubset(transport.calls))
+        payload_calls = [
+            call for call in transport.calls if "/contents/" in call or "/git/trees/" in call
+        ]
+        self.assertTrue(
+            all(
+                f"?ref={PIN}" in call or f"/git/trees/{PIN}" in call
+                for call in payload_calls
+            )
         )
         self.assertIn("source=floating ref='main' resolved_sha='" + PIN + "'", stdout)
         self.assertIn("source=floating ref=main resolved_sha=" + PIN + " payload=checked", stdout)
-        self.assertIn(tree, transport.calls)
         self.assertNotIn("?ref=main", "\n".join(transport.calls))
+
+    def test_rolling_latest_rejects_matching_nonsemantic_catalog_and_manifest_versions(self) -> None:
+        plugin = rolling_entry("ask-agent", "not-a-semver")
+
+        failures, _, _, stderr = self.run_check(
+            catalog(plugin), FakeTransport(rolling_responses(plugin))
+        )
+
+        self.assertEqual(failures, 2)
+        self.assertIn("catalog version 'not-a-semver' must be a semantic version", stderr)
+        self.assertIn("plugin.json version 'not-a-semver' must be a semantic version", stderr)
+
+    def test_immutable_external_entry_allows_nonsemantic_matching_version(self) -> None:
+        plugin = entry(version="legacy-release-name")
+        responses = valid_responses(
+            plugin,
+            plugin_manifest=manifest(version="legacy-release-name"),
+            body=skill_body(version="legacy-release-name"),
+        )
+
+        failures, advisories, _, stderr = self.run_check(catalog(plugin), FakeTransport(responses))
+
+        self.assertEqual((failures, advisories), (0, 0), stderr)
 
     def test_rolling_latest_rejects_a_sha_or_non_main_ref_before_transport(self) -> None:
         cases = (

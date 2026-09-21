@@ -6,7 +6,7 @@ https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.m
 ## Market rules
 
 1. Every entry except the coordinated workflow set requires a full 40-character `source.sha`. Catalog `version` must equal `plugin.json` `version` at that pinned SHA; `ref` is an optional release or branch label.
-2. `ask-agent`, `shiploop`, `improve`, and `backchain` deliberately use `source.ref: "main"` and omit `source.sha`. Their package versions remain required release metadata: a source release must bump its package/card version and the catalog version before consumers refresh.
+2. `ask-agent`, `shiploop`, `improve`, and `backchain` deliberately use `source.ref: "main"` and omit `source.sha`. Their semantic package versions remain required catalog and source metadata, and give host caches an update/reinstall signal; they do not pin or gate the branch content selected from `main`.
 3. `source.path` for skill-craft packages is `plugins/<leaf>` (not bare `skills/`). Backchain is a root `source: "url"` package and has no `path`.
 4. The rolling set is closed by the local validator. A catalog edit cannot make another package floating, pin a member of the set, redirect it, or move it off `main`.
 5. Immutable entries advance only when that leaf’s content (or package version) changes at a released tag or verified published commit — not because an umbrella tag number moved. **No bulk retarget** of content-identical pins (advisory only).
@@ -76,13 +76,12 @@ tagged release.
 ## Rolling workflow releases
 
 The coordinated workflow set follows each source repository's published `main`
-branch after a package release. A catalog refresh obtains the newest declared
-release, but it does not turn arbitrary unversioned intermediate commits into a
-consumer release: the source release contract must advance the package and card
-versions first. Claude and Codex may cache installed plugins, so consumers run a
-marketplace refresh and update/reinstall the plugin after that released version
-bump. Validation output records `source=floating`, `ref=main`, and the resolved
-SHA for the exact bytes it inspected.
+branch. Its semantic package version is a compatibility and host-cache update
+signal, not a SHA pin or branch-content gate: `main` can advance between version
+bumps under this latest policy. Claude and Codex may cache installed plugins, so
+a released version bump gives consumers a distinct marketplace refresh and
+update/reinstall signal. Validation output records `source=floating`, `ref=main`,
+and the resolved SHA for the exact bytes it inspected.
 
 Root-repository sources use `source: "url"` and omit `path`. `git-subdir` is for
 non-root paths such as `plugins/shiploop`; Codex silently omits `path: "."`.

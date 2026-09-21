@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 SHA = re.compile(r"^[0-9a-fA-F]{40}$")
+SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?(?:\+[0-9A-Za-z][0-9A-Za-z.-]*)?$")
 SKILL_CRAFT_URL = "https://github.com/whichguy/skill-craft.git"
 BACKCHAIN_URL = "https://github.com/whichguy/backchain.git"
 
@@ -207,6 +208,11 @@ def validate_catalog(data: Any, catalog: Path) -> tuple[list[str], list[dict[str
             if parsed.scheme != "https" or parsed.netloc != "github.com" or len(parsed.path.strip("/").split("/")) != 2 or parsed.query or parsed.fragment:
                 errors.append(f"{where}: source.url must be a GitHub HTTPS repository URL")
         rolling_latest = isinstance(name, str) and name in ROLLING_LATEST_SOURCES
+        version = plugin.get("version")
+        if rolling_latest and (
+            not is_text(version) or not SEMVER.fullmatch(version)
+        ):
+            errors.append(f"{where}: rolling-latest version must be a semantic version")
         rolling_errors = rolling_latest_errors(name, source)
         errors.extend(f"{where}: {error}" for error in rolling_errors)
         if not rolling_latest:

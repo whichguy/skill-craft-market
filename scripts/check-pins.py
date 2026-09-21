@@ -720,6 +720,22 @@ def verify_catalog(
         valid_manifest = True
         catalog_version = plugin.get("version")
         manifest_version = manifest.get("version")
+        if floating and (
+            not is_text(catalog_version) or not SEMVER.fullmatch(catalog_version)
+        ):
+            fail(
+                f"{name}: catalog version {catalog_version!r} must be a semantic version "
+                f"at {resolution_label}"
+            )
+            valid_manifest = False
+        if floating and (
+            not is_text(manifest_version) or not SEMVER.fullmatch(manifest_version)
+        ):
+            fail(
+                f"{name}: plugin.json version {manifest_version!r} must be a semantic version "
+                f"at {resolution_label}"
+            )
+            valid_manifest = False
         if str(catalog_version) != str(manifest_version):
             fail(
                 f"{name}: catalog version {catalog_version} != plugin.json version "

@@ -25,19 +25,21 @@ ROLLING_SOURCES: dict[str, tuple[str, str, str | None]] = {
 }
 
 
-def plugin(name: str, source: dict[str, object]) -> dict[str, object]:
+def plugin(
+    name: str, source: dict[str, object], *, version: str = "1.0.0"
+) -> dict[str, object]:
     source = {"sha": TEST_SHA, **source}
     return {
         "name": name,
         "description": f"{name} description",
-        "version": "1.0.0",
+        "version": version,
         "source": source,
         "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
         "category": "Productivity",
     }
 
 
-def rolling_plugin(name: str) -> dict[str, object]:
+def rolling_plugin(name: str, *, version: str = "1.0.0") -> dict[str, object]:
     source_type, url, path = ROLLING_SOURCES[name]
     source: dict[str, object] = {"source": source_type, "url": url, "ref": "main"}
     if path is not None:
@@ -45,7 +47,7 @@ def rolling_plugin(name: str) -> dict[str, object]:
     return {
         "name": name,
         "description": f"{name} description",
-        "version": "1.0.0",
+        "version": version,
         "source": source,
         "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
         "category": "Productivity",
@@ -221,6 +223,42 @@ class CatalogCheckTest(unittest.TestCase):
             result = self.run_check(path)
 
             self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_nonsemantic_versions_for_all_rolling_latest_entries(self) -> None:
+        for name in sorted(ROLLING_SOURCES):
+            with self.subTest(name):
+                with tempfile.TemporaryDirectory() as tmp:
+                    path = self.write_catalog(
+                        Path(tmp) / "market",
+                        catalog([rolling_plugin(name, version="not-a-semver")]),
+                    )
+
+                    result = self.run_check(path)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("rolling-latest version must be a semantic version", result.stderr)
+
+    def test_allows_nonsemantic_version_for_immutable_external_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write_catalog(
+                Path(tmp) / "market",
+                catalog(
+                    [
+                        plugin(
+                            "external",
+                            {
+                                "source": "url",
+                                "url": "https://github.com/example/external.git",
+                            },
+                            version="legacy-release-name",
+                        )
+                    ]
+                ),
+            )
+
+            result = self.run_check(path)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_rejects_a_rolling_latest_entry_that_keeps_a_sha_or_moves_off_main(self) -> None:
         for label, mutate, expected in (

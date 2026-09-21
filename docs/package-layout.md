@@ -53,7 +53,8 @@ SHAs are recorded in [the catalog](../.claude-plugin/marketplace.json):
 Immutable production entries require **full verified commit SHAs**. The
 coordinated `ask-agent`, `shiploop`, `improve`, and `backchain` releases instead
 use `ref: "main"` without a SHA; their semantic package version must advance
-before a marketplace refresh. See [pin policy](pin-policy.md).
+to give host caches an update signal, but it does not freeze `main`'s bytes. See
+[pin policy](pin-policy.md).
 
 **Do not** set `"path": "skills/skill-interop"` — Claude plugin validate requires
 `.claude-plugin/plugin.json` in the package root.

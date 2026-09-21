@@ -79,9 +79,9 @@ claude plugin install review-coverage@skill-craft-market
 ```
 
 Skill-craft packages use **`plugins/<leaf>`** and external root packages omit a
-path. `ask-agent`, `shiploop`, and `improve` follow released `main` through this
+path. `ask-agent`, `shiploop`, and `improve` follow published `main` through this
 catalog; `backchain` does the same from its root repository. The catalog keeps
-their semantic release versions, and the verifier records the exact resolved SHA
+their semantic catalog versions, and the verifier records the exact resolved SHA
 on every check. Other entries retain a full immutable commit SHA.
 
 Canonical file: **`.claude-plugin/marketplace.json`** (only committed catalog).
@@ -145,8 +145,9 @@ Normative release steps: skill-craft [`docs/skill-release-checklist.md`](https:/
 Market-side notes: [docs/pin-policy.md](docs/pin-policy.md).
 
 Immutable entries are not bulk-retargeted when leaf content is unchanged. The
-four coordinated workflow entries refresh from `main` after their source release
-version changes; see [docs/pin-policy.md](docs/pin-policy.md#rolling-workflow-releases).
+four coordinated workflow entries follow `main`; a package version bump gives
+host caches an update signal without pinning the branch content. See
+[docs/pin-policy.md](docs/pin-policy.md#rolling-workflow-releases).
 
 ## Faces
 
@@ -162,7 +163,7 @@ See [docs/package-layout.md](docs/package-layout.md).
 ## Improve release candidate
 
 `improve@skill-craft-market` publishes the standalone Improve workflow from
-`skill-craft/plugins/improve`, at the release version recorded in
+`skill-craft/plugins/improve`, at the semantic catalog version recorded in
 [the catalog](.claude-plugin/marketplace.json) and resolved from published
 `main` during validation. It includes the
 compatible Until Loop runtime, so installing this plugin does not require a
