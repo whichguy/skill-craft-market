@@ -29,6 +29,16 @@ ROLLING_SOURCES: dict[str, tuple[str, str, str | None]] = {
     "improve": ("git-subdir", "whichguy/skill-craft", "plugins/improve"),
     "backchain": ("url", "whichguy/backchain", None),
 }
+STRICT_SEMVER_CASES = (
+    ("0.0.0", True),
+    ("1.2.3-rc.5", True),
+    ("1.2.3+001.02", True),
+    ("01.2.3", False),
+    ("1.02.3", False),
+    ("1.2.03", False),
+    ("1.2.3-01", False),
+    ("1.2.3-alpha..1", False),
+)
 
 
 def encoded(text: str) -> dict[str, str]:
@@ -774,16 +784,27 @@ class PinCheckTest(unittest.TestCase):
         self.assertIn("source=floating ref=main resolved_sha=" + PIN + " payload=checked", stdout)
         self.assertNotIn("?ref=main", "\n".join(transport.calls))
 
-    def test_rolling_latest_rejects_matching_nonsemantic_catalog_and_manifest_versions(self) -> None:
-        plugin = rolling_entry("ask-agent", "not-a-semver")
+    def test_rolling_latest_validates_matching_catalog_and_manifest_strict_semver(self) -> None:
+        for version, valid in STRICT_SEMVER_CASES:
+            with self.subTest(version=version):
+                plugin = rolling_entry("ask-agent", version)
 
-        failures, _, _, stderr = self.run_check(
-            catalog(plugin), FakeTransport(rolling_responses(plugin))
-        )
+                failures, _, _, stderr = self.run_check(
+                    catalog(plugin), FakeTransport(rolling_responses(plugin))
+                )
 
-        self.assertEqual(failures, 2)
-        self.assertIn("catalog version 'not-a-semver' must be a semantic version", stderr)
-        self.assertIn("plugin.json version 'not-a-semver' must be a semantic version", stderr)
+                if valid:
+                    self.assertEqual(failures, 0, stderr)
+                else:
+                    self.assertEqual(failures, 2)
+                    self.assertIn(
+                        f"catalog version {version!r} must be a semantic version",
+                        stderr,
+                    )
+                    self.assertIn(
+                        f"plugin.json version {version!r} must be a semantic version",
+                        stderr,
+                    )
 
     def test_immutable_external_entry_allows_nonsemantic_matching_version(self) -> None:
         plugin = entry(version="legacy-release-name")

@@ -15,7 +15,14 @@ from urllib.parse import urlparse
 
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 SHA = re.compile(r"^[0-9a-fA-F]{40}$")
-SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?(?:\+[0-9A-Za-z][0-9A-Za-z.-]*)?$")
+# Strict SemVer 2.0.0: numeric prerelease identifiers cannot lead with zero;
+# build-metadata identifiers may.
+SEMVER = re.compile(
+    r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+    r"(?:-(?:(?:0|[1-9][0-9]*)|(?:[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))"
+    r"(?:\.(?:(?:0|[1-9][0-9]*)|(?:[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)))*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
 SKILL_CRAFT_URL = "https://github.com/whichguy/skill-craft.git"
 BACKCHAIN_URL = "https://github.com/whichguy/backchain.git"
 

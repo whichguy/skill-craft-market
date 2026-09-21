@@ -23,6 +23,16 @@ ROLLING_SOURCES: dict[str, tuple[str, str, str | None]] = {
     "improve": ("git-subdir", SKILL_CRAFT_URL, "plugins/improve"),
     "backchain": ("url", BACKCHAIN_URL, None),
 }
+STRICT_SEMVER_CASES = (
+    ("0.0.0", True),
+    ("1.2.3-rc.5", True),
+    ("1.2.3+001.02", True),
+    ("01.2.3", False),
+    ("1.02.3", False),
+    ("1.2.03", False),
+    ("1.2.3-01", False),
+    ("1.2.3-alpha..1", False),
+)
 
 
 def plugin(
@@ -224,19 +234,26 @@ class CatalogCheckTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_rejects_nonsemantic_versions_for_all_rolling_latest_entries(self) -> None:
-        for name in sorted(ROLLING_SOURCES):
-            with self.subTest(name):
-                with tempfile.TemporaryDirectory() as tmp:
-                    path = self.write_catalog(
-                        Path(tmp) / "market",
-                        catalog([rolling_plugin(name, version="not-a-semver")]),
-                    )
+    def test_enforces_strict_semver_for_all_rolling_latest_entries(self) -> None:
+        for version, valid in STRICT_SEMVER_CASES:
+            for name in sorted(ROLLING_SOURCES):
+                with self.subTest(name=name, version=version):
+                    with tempfile.TemporaryDirectory() as tmp:
+                        path = self.write_catalog(
+                            Path(tmp) / "market",
+                            catalog([rolling_plugin(name, version=version)]),
+                        )
 
-                    result = self.run_check(path)
+                        result = self.run_check(path)
 
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("rolling-latest version must be a semantic version", result.stderr)
+                    if valid:
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                    else:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn(
+                            "rolling-latest version must be a semantic version",
+                            result.stderr,
+                        )
 
     def test_allows_nonsemantic_version_for_immutable_external_entry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

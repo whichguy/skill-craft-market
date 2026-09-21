@@ -6,7 +6,7 @@ https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.m
 ## Market rules
 
 1. Every entry except the coordinated workflow set requires a full 40-character `source.sha`. Catalog `version` must equal `plugin.json` `version` at that pinned SHA; `ref` is an optional release or branch label.
-2. `ask-agent`, `shiploop`, `improve`, and `backchain` deliberately use `source.ref: "main"` and omit `source.sha`. Their semantic package versions remain required catalog and source metadata, and give host caches an update/reinstall signal; they do not pin or gate the branch content selected from `main`.
+2. `ask-agent`, `shiploop`, `improve`, and `backchain` deliberately use `source.ref: "main"` and omit `source.sha`. Their strict SemVer 2 package versions remain required catalog and source metadata, and give host caches an update/reinstall signal; they do not pin or gate the branch content selected from `main`. Build metadata follows SemVer's rule that numeric identifiers may retain leading zeroes.
 3. `source.path` for skill-craft packages is `plugins/<leaf>` (not bare `skills/`). Backchain is a root `source: "url"` package and has no `path`.
 4. The rolling set is closed by the local validator. A catalog edit cannot make another package floating, pin a member of the set, redirect it, or move it off `main`.
 5. Immutable entries advance only when that leaf’s content (or package version) changes at a released tag or verified published commit — not because an umbrella tag number moved. **No bulk retarget** of content-identical pins (advisory only).
