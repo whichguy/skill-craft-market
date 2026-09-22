@@ -117,7 +117,7 @@ claude plugin install until-loop@skill-craft-market
 
 ## Private source: backchain
 
-The Backchain 0.3.6 plugin contains the planning skill and Plan Dispatcher.
+The Backchain 0.3.7 plugin contains the planning skill and Plan Dispatcher.
 In Codex, select `$backchain:backchain` or `$backchain:plan-dispatcher`;
 in Claude, use `/backchain:backchain` or `/backchain:plan-dispatcher`.
 
