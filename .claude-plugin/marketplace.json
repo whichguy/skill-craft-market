@@ -370,7 +370,7 @@
     {
       "name": "shiploop",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
-      "version": "0.19.1",
+      "version": "0.19.2",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -390,7 +390,7 @@
     {
       "name": "improve",
       "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
-      "version": "0.2.0-rc.7",
+      "version": "0.2.0-rc.8",
       "author": {
         "name": "whichguy"
       },
