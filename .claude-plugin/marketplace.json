@@ -370,7 +370,7 @@
     {
       "name": "shiploop",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
-      "version": "0.19.5",
+      "version": "0.19.7",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -429,7 +429,7 @@
     {
       "name": "ask-agent",
       "description": "A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main conversation, and incorporate their results when they return. Use for \"ask an agent\", named agent roles, parallel delegation, or launch-and-notify work.",
-      "version": "0.7.4",
+      "version": "0.7.5",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
