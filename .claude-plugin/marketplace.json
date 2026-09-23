@@ -29,13 +29,14 @@
     {
       "name": "backchain",
       "description": "Plan Orchestrator portable skills: Backchain builds and repeatedly reviews evidence-backed dependency plans; Plan Dispatcher coordinates their execution with native agents. Existing backchain skill and plugin identities remain stable.",
-      "version": "0.3.7",
+      "version": "0.3.9",
       "author": {
         "name": "whichguy"
       },
       "source": {
-        "source": "url",
-        "url": "https://github.com/whichguy/backchain.git",
+        "source": "git-subdir",
+        "url": "https://github.com/whichguy/skill-craft.git",
+        "path": "plugins/backchain",
         "ref": "main"
       },
       "policy": {

@@ -77,17 +77,13 @@ def plugin(
 
 
 def rolling_plugin(name: str) -> dict[str, object]:
-    item = plugin(name, native=name != "backchain")
+    # All four rolling entries, including the vendored Backchain bundle, are
+    # native skill-craft plugins/<name> packages.
+    item = plugin(name, native=True)
     source = item["source"]
     assert isinstance(source, dict)
     source.pop("sha")
     source["ref"] = "main"
-    if name == "backchain":
-        source.update(
-            source="url",
-            url="https://github.com/whichguy/backchain.git",
-        )
-        source.pop("path", None)
     return item
 
 
@@ -231,11 +227,14 @@ class ReleasePayloadTest(unittest.TestCase):
             stdout,
         )
 
-    def test_changed_backchain_gets_strict_payload_check(self) -> None:
-        old = plugin("backchain", native=False, version="0.3.4")
-        old["source"]["url"] = "https://github.com/whichguy/backchain.git"
-        new = json.loads(json.dumps(old))
-        new["version"] = "0.3.5"
+    def test_backchain_move_to_skill_craft_gets_strict_payload_check(self) -> None:
+        # The external-to-native move (private root repository -> public
+        # skill-craft plugins/backchain) is allowed and strictly verified.
+        old = plugin("backchain", native=False, version="0.3.7")
+        old["source"].update(url="https://github.com/whichguy/backchain.git", ref="main")
+        old["source"].pop("sha")
+        new = rolling_plugin("backchain")
+        new["version"] = "0.3.8"
         with tempfile.TemporaryDirectory() as tmp:
             repo, base_ref = self.make_repo(Path(tmp), catalog([old]), catalog([new]))
             fake = FakePins()

@@ -50,6 +50,11 @@ SHAs are recorded in [the catalog](../.claude-plugin/marketplace.json):
 }
 ```
 
+Backchain is a **vendored bundle** in skill-craft: `bundles/backchain`
+(a hash-verified copy of the private development source) generates
+`plugins/backchain` with two skills. It is marketplace-only; skill-craft's
+`install.sh` never installs it.
+
 Immutable production entries require **full verified commit SHAs**. The
 coordinated `ask-agent`, `shiploop`, `improve`, and `backchain` releases instead
 use `ref: "main"` without a SHA; their semantic package version must advance

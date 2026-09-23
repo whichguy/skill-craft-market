@@ -24,17 +24,18 @@ SEMVER = re.compile(
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
 )
 SKILL_CRAFT_URL = "https://github.com/whichguy/skill-craft.git"
-BACKCHAIN_URL = "https://github.com/whichguy/backchain.git"
 
 # These four packages are released as one coordinated workflow surface. They
-# deliberately follow their source repositories' published main branch rather
-# than retaining an immutable catalog SHA. Keep this allowlist small: every
-# other catalog entry remains an immutable pin.
+# deliberately follow skill-craft's published main branch rather than retaining
+# an immutable catalog SHA. Backchain is skill-craft's vendored plugin bundle
+# (bundles/backchain -> plugins/backchain); its development repository stays
+# private. Keep this allowlist small: every other catalog entry remains an
+# immutable pin.
 ROLLING_LATEST_SOURCES: dict[str, tuple[str, str, str | None]] = {
     "ask-agent": ("git-subdir", SKILL_CRAFT_URL, "plugins/ask-agent"),
     "shiploop": ("git-subdir", SKILL_CRAFT_URL, "plugins/shiploop"),
     "improve": ("git-subdir", SKILL_CRAFT_URL, "plugins/improve"),
-    "backchain": ("url", BACKCHAIN_URL, None),
+    "backchain": ("git-subdir", SKILL_CRAFT_URL, "plugins/backchain"),
 }
 
 
@@ -277,6 +278,14 @@ def validate_coverage(entries: list[dict[str, Any]], skill_craft_root: Path) -> 
     leaf_names = {path.parent.name for path in skills.glob("*/SKILL.md") if path.is_file()}
     if not leaf_names:
         return [f"coverage: skill-craft source has no skills/*/SKILL.md leaves at {skills}"]
+    # Plugin bundles (bundles/<plugin>/bundle.json) publish plugins/<plugin>
+    # like a leaf; install.sh never installs them, but the catalog must.
+    bundle_names = {
+        path.parent.name
+        for path in (skill_craft_root / "bundles").glob("*/bundle.json")
+        if path.is_file()
+    }
+    publishable = leaf_names | bundle_names
 
     catalog_names: set[str] = set()
     ownership_collisions: set[str] = set()
@@ -288,18 +297,24 @@ def validate_coverage(entries: list[dict[str, Any]], skill_craft_root: Path) -> 
         source_url = source.get("url")
         if is_skill_craft_url(source_url):
             catalog_names.add(name)
-        elif name in leaf_names and is_text(source_url):
+        elif name in publishable and is_text(source_url):
             ownership_collisions.add(name)
+            owned = f"skills/{name}/SKILL.md" if name in leaf_names else f"bundles/{name}/bundle.json"
             errors.append(
                 "coverage: canonical ownership collision for "
-                f"skill-craft source leaf skills/{name}/SKILL.md: catalog source.url "
+                f"skill-craft source {owned}: catalog source.url "
                 f"{source_url!r}; expected {SKILL_CRAFT_URL!r}"
             )
 
     for leaf in sorted(leaf_names - catalog_names - ownership_collisions):
         errors.append(f"coverage: missing catalog entry for skill-craft skills/{leaf}/SKILL.md")
-    for name in sorted(catalog_names - leaf_names):
-        errors.append(f"coverage: stale skill-craft catalog entry {name!r}; no matching skills/{name}/SKILL.md")
+    for bundle in sorted(bundle_names - catalog_names - ownership_collisions):
+        errors.append(f"coverage: missing catalog entry for skill-craft bundles/{bundle}/bundle.json")
+    for name in sorted(catalog_names - publishable):
+        errors.append(
+            f"coverage: stale skill-craft catalog entry {name!r}; "
+            f"no matching skills/{name}/SKILL.md or bundles/{name}/bundle.json"
+        )
     return errors
 
 

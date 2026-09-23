@@ -56,7 +56,7 @@ ROLLING_LATEST_SOURCES: dict[str, tuple[str, str, str | None]] = {
     "ask-agent": ("git-subdir", "whichguy/skill-craft", "plugins/ask-agent"),
     "shiploop": ("git-subdir", "whichguy/skill-craft", "plugins/shiploop"),
     "improve": ("git-subdir", "whichguy/skill-craft", "plugins/improve"),
-    "backchain": ("url", "whichguy/backchain", None),
+    "backchain": ("git-subdir", "whichguy/skill-craft", "plugins/backchain"),
 }
 
 # Immutable native package entrypoints for this marketplace family. This map
@@ -83,12 +83,16 @@ NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
         "scripts/scaffold-skill.sh": "bash",
     },
 }
-BACKCHAIN_MULTI_SKILL_REPOSITORY = "whichguy/backchain"
-# This is the historical immutable package exception. A floating Backchain
-# release validates the secondary card's semantic metadata and helper rather
-# than baking each future paired version into this verifier.
-BACKCHAIN_MULTI_SKILL_PRIMARY = ("backchain", "0.3.5")
-BACKCHAIN_MULTI_SKILL_SECONDARY = ("plan-dispatcher", "0.1.1")
+# Backchain's development repository is private. skill-craft publishes a
+# vendored, provenance-verified copy (bundles/backchain) as the two-skill
+# package plugins/backchain; that public location is the only qualified
+# multi-skill package. The secondary card is validated by its semantic
+# contract (identity, semantic metadata.version, script-backed kind, helper),
+# so a released version needs no checker edit.
+BACKCHAIN_MULTI_SKILL_REPOSITORY = "whichguy/skill-craft"
+BACKCHAIN_MULTI_SKILL_ROOT = "plugins/backchain"
+BACKCHAIN_MULTI_SKILL_PRIMARY = "backchain"
+BACKCHAIN_MULTI_SKILL_SECONDARY = "plan-dispatcher"
 BACKCHAIN_MULTI_SKILL_ENTRYPOINTS = {"scripts/dispatch.js": "node"}
 IMPROVE_EPHEMERAL_RUNTIME = "runtime/until-loop/scripts/until_loop_ephemeral.py"
 _IMPROVE_EPHEMERAL_RUNTIME_DECLARATION = re.compile(
@@ -292,18 +296,12 @@ def permits_backchain_secondary_skill(
     repo: str,
     package_root: str,
     manifest: dict[str, Any],
-    *,
-    rolling_backchain: bool = False,
 ) -> bool:
-    """Allow the qualified dispatcher card for a static or rolling Backchain package."""
-    is_backchain_root = (
-        repo == BACKCHAIN_MULTI_SKILL_REPOSITORY
-        and package_root == ""
-        and manifest.get("name") == BACKCHAIN_MULTI_SKILL_PRIMARY[0]
-    )
-    return is_backchain_root and (
-        rolling_backchain
-        or (manifest.get("name"), manifest.get("version")) == BACKCHAIN_MULTI_SKILL_PRIMARY
+    """Allow the dispatcher card only in skill-craft's plugins/backchain package."""
+    return (
+        repo.casefold() == BACKCHAIN_MULTI_SKILL_REPOSITORY
+        and package_root == BACKCHAIN_MULTI_SKILL_ROOT
+        and manifest.get("name") == BACKCHAIN_MULTI_SKILL_PRIMARY
     )
 
 
@@ -358,11 +356,9 @@ def validate_backchain_secondary_skill(
     sha: str,
     prefix: str,
     files: dict[str, dict[str, Any]],
-    *,
-    expected_version: str | None,
 ) -> None:
     """Validate Backchain's paired Plan Dispatcher card and bundled helper."""
-    secondary_name, _ = BACKCHAIN_MULTI_SKILL_SECONDARY
+    secondary_name = BACKCHAIN_MULTI_SKILL_SECONDARY
     secondary_path = f"skills/{secondary_name}/SKILL.md"
     try:
         secondary_body = fetch_file(transport, repo, prefix + secondary_path, sha)
@@ -377,11 +373,6 @@ def validate_backchain_secondary_skill(
             f"{frontmatter.get('name')!r} does not match"
         )
     metadata_version = backchain_secondary_metadata_version(secondary_body)
-    if expected_version is not None and metadata_version != expected_version:
-        raise ValueError(
-            f"qualified secondary skill {secondary_path} metadata.version "
-            f"{metadata_version!r} != expected {expected_version!r}"
-        )
     if not is_text(metadata_version) or not SEMVER.fullmatch(metadata_version):
         raise ValueError(
             f"qualified secondary skill {secondary_path} metadata.version "
@@ -536,8 +527,6 @@ def verify_payload(
     package_root: str,
     manifest: dict[str, Any],
     skill_body: str,
-    *,
-    rolling_backchain: bool = False,
 ) -> None:
     """Release-only gate for a complete resolved tree; never executes its code.
 
@@ -566,16 +555,10 @@ def verify_payload(
         if item.get("type") == "blob":
             files[relative] = item
     name = manifest["name"]
-    permits_secondary_skill = permits_backchain_secondary_skill(
-        repo,
-        package_root,
-        manifest,
-        rolling_backchain=rolling_backchain,
-    )
+    permits_secondary_skill = permits_backchain_secondary_skill(repo, package_root, manifest)
     required = ["LICENSE", "README.md", ".claude-plugin/plugin.json", f"skills/{name}/SKILL.md"]
     if permits_secondary_skill:
-        secondary_name, _ = BACKCHAIN_MULTI_SKILL_SECONDARY
-        required.append(f"skills/{secondary_name}/SKILL.md")
+        required.append(f"skills/{BACKCHAIN_MULTI_SKILL_SECONDARY}/SKILL.md")
     requires_codex_adapter = repo.casefold() in CODEX_ADAPTER_REPOSITORIES
     if requires_codex_adapter:
         required.append(".codex-plugin/plugin.json")
@@ -587,24 +570,13 @@ def verify_payload(
             raise ValueError(f"empty packaged {path}")
     allowed_skill_cards = {f"skills/{name}/SKILL.md"}
     if permits_secondary_skill:
-        secondary_name, _ = BACKCHAIN_MULTI_SKILL_SECONDARY
-        allowed_skill_cards.add(f"skills/{secondary_name}/SKILL.md")
+        allowed_skill_cards.add(f"skills/{BACKCHAIN_MULTI_SKILL_SECONDARY}/SKILL.md")
     for path in files:
         if path.endswith("/SKILL.md") and path not in allowed_skill_cards:
             raise ValueError(f"unexpected additional advertised skill: {path}")
     validate_script_payload(transport, repo, sha, prefix, name, skill_body, files)
     if permits_secondary_skill:
-        expected_secondary_version = (
-            None if rolling_backchain else BACKCHAIN_MULTI_SKILL_SECONDARY[1]
-        )
-        validate_backchain_secondary_skill(
-            transport,
-            repo,
-            sha,
-            prefix,
-            files,
-            expected_version=expected_secondary_version,
-        )
+        validate_backchain_secondary_skill(transport, repo, sha, prefix, files)
     if requires_codex_adapter:
         codex = json.loads(fetch_file(transport, repo, prefix + ".codex-plugin/plugin.json", sha))
         if not isinstance(codex, dict):
@@ -799,7 +771,6 @@ def verify_catalog(
                     package_root,
                     manifest,
                     skill_body,
-                    rolling_backchain=floating,
                 )
             except Exception as exc:
                 fail(f"{name}: complete payload at {resolution_label}: {exc}")

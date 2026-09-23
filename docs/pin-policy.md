@@ -7,7 +7,7 @@ https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.m
 
 1. Every entry except the coordinated workflow set requires a full 40-character `source.sha`. Catalog `version` must equal `plugin.json` `version` at that pinned SHA; `ref` is an optional release or branch label.
 2. `ask-agent`, `shiploop`, `improve`, and `backchain` deliberately use `source.ref: "main"` and omit `source.sha`. Their strict SemVer 2 package versions remain required catalog and source metadata, and give host caches an update/reinstall signal; they do not pin or gate the branch content selected from `main`. Build metadata follows SemVer's rule that numeric identifiers may retain leading zeroes.
-3. `source.path` for skill-craft packages is `plugins/<leaf>` (not bare `skills/`). Backchain is a root `source: "url"` package and has no `path`.
+3. `source.path` for skill-craft packages is `plugins/<leaf>` (not bare `skills/`), including the vendored Backchain bundle at `plugins/backchain`.
 4. The rolling set is closed by the local validator. A catalog edit cannot make another package floating, pin a member of the set, redirect it, or move it off `main`.
 5. Immutable entries advance only when that leaf’s content (or package version) changes at a released tag or verified published commit — not because an umbrella tag number moved. **No bulk retarget** of content-identical pins (advisory only).
 6. External pins (e.g. lennox-s40) use their own repo URL/tag scheme; monorepo must not also ship the same leaf name.
@@ -22,14 +22,15 @@ verifier resolves `main` once, records the exact returned SHA, and fetches the
 manifest, card, helper payload, and complete tree only at that SHA. A ref move
 during validation therefore cannot mix bytes from two revisions. Package
 name/version mismatches and hooks fail validation; description drift is advisory.
-Run the script locally with `GH_TOKEN` in the environment when private source
-access is needed.
+No entry requires private access. `GH_TOKEN` is optional: set it only to avoid
+GitHub's anonymous API limit (60 requests per hour), which a full local
+`check-pins.py` run can exceed.
 
 On every pull request and push, CI also runs
 `python3 scripts/check-release-payload.py --base <base-sha>` against the
 merge-base catalog. It applies the complete-payload check to new or changed
-entries from the explicit release-payload allowlist: `whichguy/skill-craft`,
-`whichguy/workflow-engine`, and `whichguy/backchain`; the four rolling entries
+entries from the explicit release-payload allowlist: `whichguy/skill-craft`
+and `whichguy/workflow-engine`; the four rolling entries
 are selected on every invocation because their ref can advance without a catalog
 diff. Unchanged legacy entries are not silently upgraded to that stronger
 contract. Removals are reported without payload verification.
@@ -38,12 +39,12 @@ fails: it requires separately qualified migration review and cannot use a
 catalog edit to evade the native release gate. Missing base commits or malformed
 base/current catalogs fail visibly.
 
-Backchain is explicitly qualified as a two-skill root package containing
-Backchain and Plan Dispatcher. Its secondary card must retain the
-`plan-dispatcher` identity, a semantic metadata version, script-backed kind, and
-bundled dispatcher helper. Static historical pins retain their original paired
-version check; the rolling entry validates this semantic contract so future
-released versions do not require checker edits merely to advance a number.
+Backchain is explicitly qualified as a two-skill package, and only at
+`whichguy/skill-craft` `plugins/backchain` (skill-craft's vendored bundle). Its
+secondary card must retain the `plan-dispatcher` identity, a semantic metadata
+version, script-backed kind, and bundled dispatcher helper. This semantic
+contract means released versions do not require checker edits merely to advance
+a number. The former private root location is no longer qualified.
 
 For a new marketplace-readiness release candidate, additionally run
 `python3 scripts/check-pins.py --full-payload` (or select **full_payload** in the
@@ -91,14 +92,12 @@ and explicit per-entry policy/category; Claude ignores Codex-specific fields.
 The current remote verifier supports GitHub HTTPS repository URLs; the local
 validator rejects other providers until their verification path is implemented.
 
-## Private source access
+## Source access
 
-`whichguy/backchain` is private. Installing that entry requires GitHub access to
-that repository. This catalog does not grant access or change visibility. Public
-users can install the other entries only if they can read their source repositories.
-The remote CI check uses the optional `MARKETPLACE_READ_TOKEN` Actions secret,
-falling back to the workflow token. For a private cross-repository source, configure
-a token with read access to that source; the default workflow token cannot grant
-that access. No credential is stored in this repository. A 404 from the contents
-API can indicate missing access as well as a missing file, and validation fails
-rather than silently skipping that entry.
+Every catalog source is public; install and CI need no credentials. Backchain's
+development repository stays private, but this catalog selects its public,
+provenance-verified copy in skill-craft (`plugins/backchain`). The remote CI
+check still accepts the optional `MARKETPLACE_READ_TOKEN` Actions secret and
+otherwise uses the workflow token. No credential is stored in this repository.
+A 404 from the contents API fails validation rather than silently skipping an
+entry.

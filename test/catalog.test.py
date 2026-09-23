@@ -15,13 +15,12 @@ REPO = Path(__file__).resolve().parents[1]
 CHECK = REPO / "scripts" / "check-catalog.py"
 TEST_SHA = "0123456789abcdef0123456789abcdef01234567"
 SKILL_CRAFT_URL = "https://github.com/whichguy/skill-craft.git"
-BACKCHAIN_URL = "https://github.com/whichguy/backchain.git"
 
 ROLLING_SOURCES: dict[str, tuple[str, str, str | None]] = {
     "ask-agent": ("git-subdir", SKILL_CRAFT_URL, "plugins/ask-agent"),
     "shiploop": ("git-subdir", SKILL_CRAFT_URL, "plugins/shiploop"),
     "improve": ("git-subdir", SKILL_CRAFT_URL, "plugins/improve"),
-    "backchain": ("url", BACKCHAIN_URL, None),
+    "backchain": ("git-subdir", SKILL_CRAFT_URL, "plugins/backchain"),
 }
 STRICT_SEMVER_CASES = (
     ("0.0.0", True),
@@ -357,6 +356,60 @@ class CatalogCheckTest(unittest.TestCase):
             result = self.run_check(catalog_path, "--skill-craft-root", str(skill_craft))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("missing catalog entry for skill-craft skills/beta/SKILL.md", result.stderr)
+
+    def write_bundle_source(self, skill_craft: Path, bundle: str = "suite") -> None:
+        leaf = skill_craft / "skills" / "alpha" / "SKILL.md"
+        leaf.parent.mkdir(parents=True, exist_ok=True)
+        leaf.write_text("---\nname: alpha\n---\n", encoding="utf-8")
+        declaration = skill_craft / "bundles" / bundle / "bundle.json"
+        declaration.parent.mkdir(parents=True, exist_ok=True)
+        declaration.write_text(json.dumps({"name": bundle, "skills": [bundle, "helper"]}), encoding="utf-8")
+
+    def native(self, name: str) -> dict[str, object]:
+        return plugin(name, {"source": "git-subdir", "url": SKILL_CRAFT_URL, "path": f"plugins/{name}", "ref": "v1.0.0"})
+
+    def test_coverage_accepts_catalog_entry_for_plugin_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_craft = Path(tmp) / "skill-craft"
+            self.write_bundle_source(skill_craft)
+            catalog_path = self.write_catalog(Path(tmp) / "market", catalog([self.native("alpha"), self.native("suite")]))
+            result = self.run_check(catalog_path, "--skill-craft-root", str(skill_craft))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_coverage_requires_catalog_entry_for_plugin_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_craft = Path(tmp) / "skill-craft"
+            self.write_bundle_source(skill_craft)
+            catalog_path = self.write_catalog(Path(tmp) / "market", catalog([self.native("alpha")]))
+            result = self.run_check(catalog_path, "--skill-craft-root", str(skill_craft))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("missing catalog entry for skill-craft bundles/suite/bundle.json", result.stderr)
+
+    def test_coverage_stale_entry_names_leaf_and_bundle_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_craft = Path(tmp) / "skill-craft"
+            self.write_bundle_source(skill_craft)
+            catalog_path = self.write_catalog(
+                Path(tmp) / "market",
+                catalog([self.native("alpha"), self.native("suite"), self.native("retired")]),
+            )
+            result = self.run_check(catalog_path, "--skill-craft-root", str(skill_craft))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "stale skill-craft catalog entry 'retired'; no matching skills/retired/SKILL.md "
+                "or bundles/retired/bundle.json",
+                result.stderr,
+            )
+
+    def test_coverage_rejects_external_source_for_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_craft = Path(tmp) / "skill-craft"
+            self.write_bundle_source(skill_craft)
+            private = plugin("suite", {"source": "url", "url": "https://github.com/whichguy/backchain.git", "ref": "v1.0.0"})
+            catalog_path = self.write_catalog(Path(tmp) / "market", catalog([self.native("alpha"), private]))
+            result = self.run_check(catalog_path, "--skill-craft-root", str(skill_craft))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("canonical ownership collision for skill-craft source bundles/suite/bundle.json", result.stderr)
 
     def test_coverage_rejects_external_source_for_canonical_leaf(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

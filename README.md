@@ -2,8 +2,7 @@
 
 **Claude-compatible plugin catalog for Claude Code and Codex** with immutable
 external packages and rolling latest releases for Ask-Agent, ShipLoop, Improve,
-and Backchain from [skill-craft](https://github.com/whichguy/skill-craft) and its
-coordinated source repository.
+and Backchain from [skill-craft](https://github.com/whichguy/skill-craft).
 **Catalog only** — does not vendor skill prompt bodies.
 
 **No hooks.** This marketplace never installs plan-oversight, ExitPlanMode soft_exit,
@@ -79,8 +78,8 @@ claude plugin install review-coverage@skill-craft-market
 ```
 
 Skill-craft packages use **`plugins/<leaf>`** and external root packages omit a
-path. `ask-agent`, `shiploop`, and `improve` follow published `main` through this
-catalog; `backchain` does the same from its root repository. The catalog keeps
+path. `ask-agent`, `shiploop`, `improve`, and `backchain` follow published
+skill-craft `main` through this catalog. The catalog keeps
 their semantic catalog versions, and the verifier records the exact resolved SHA
 on every check. Other entries retain a full immutable commit SHA.
 
@@ -115,15 +114,32 @@ claude plugin marketplace update skill-craft-market
 claude plugin install until-loop@skill-craft-market
 ```
 
-## Private source: backchain
+## Backchain (vendored in skill-craft)
 
-The Backchain 0.3.7 plugin contains the planning skill and Plan Dispatcher.
+The Backchain plugin contains the planning skill and Plan Dispatcher.
 In Codex, select `$backchain:backchain` or `$backchain:plan-dispatcher`;
 in Claude, use `/backchain:backchain` or `/backchain:plan-dispatcher`.
 
-Backchain is a private repository. Its marketplace entry requires existing GitHub
-read access; listing the entry does not grant access. CI access requirements are
-documented in [pin policy](docs/pin-policy.md#private-source-access).
+It installs anonymously from public skill-craft `plugins/backchain`, a
+provenance-verified copy of the Backchain development source, which remains
+private. No GitHub token is needed. Keep one track per host: either the
+skill-directory links to a Backchain checkout or this plugin, not both.
+
+An install made before the move still points at the private repository. Reinstall
+it once so the host records the public source:
+
+```sh
+claude plugin marketplace update skill-craft-market
+claude plugin uninstall backchain@skill-craft-market
+claude plugin install backchain@skill-craft-market
+codex plugin marketplace upgrade skill-craft-market
+codex plugin remove backchain@skill-craft-market
+codex plugin add backchain@skill-craft-market
+```
+
+Grok installs Backchain from the skill-craft marketplace
+(`grok plugin marketplace add whichguy/skill-craft`) or this catalog; remove the
+old registration first (`grok plugin uninstall backchain`), then install it again.
 
 ## External pin: lennox-s40
 
@@ -145,7 +161,7 @@ Normative release steps: skill-craft [`docs/skill-release-checklist.md`](https:/
 Market-side notes: [docs/pin-policy.md](docs/pin-policy.md).
 
 Immutable entries are not bulk-retargeted when leaf content is unchanged. The
-four coordinated workflow entries follow `main`; a package version bump gives
+four coordinated workflow entries follow skill-craft `main`; a package version bump gives
 host caches an update signal without pinning the branch content. See
 [docs/pin-policy.md](docs/pin-policy.md#rolling-workflow-releases).
 
