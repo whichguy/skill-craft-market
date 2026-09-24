@@ -125,21 +125,8 @@ provenance-verified copy of the Backchain development source, which remains
 private. No GitHub token is needed. Keep one track per host: either the
 skill-directory links to a Backchain checkout or this plugin, not both.
 
-An install made before the move still points at the private repository. Reinstall
-it once so the host records the public source:
-
-```sh
-claude plugin marketplace update skill-craft-market
-claude plugin uninstall backchain@skill-craft-market
-claude plugin install backchain@skill-craft-market
-codex plugin marketplace upgrade skill-craft-market
-codex plugin remove backchain@skill-craft-market
-codex plugin add backchain@skill-craft-market
-```
-
 Grok installs Backchain from the skill-craft marketplace
-(`grok plugin marketplace add whichguy/skill-craft`) or this catalog; remove the
-old registration first (`grok plugin uninstall backchain`), then install it again.
+(`grok plugin marketplace add whichguy/skill-craft`) or this catalog.
 
 ## External pin: lennox-s40
 
@@ -181,9 +168,11 @@ See [docs/package-layout.md](docs/package-layout.md).
 `improve@skill-craft-market` publishes the standalone Improve workflow from
 `skill-craft/plugins/improve`, at the semantic catalog version recorded in
 [the catalog](.claude-plugin/marketplace.json) and resolved from published
-`main` during validation. It includes the
-compatible Until Loop runtime, so installing this plugin does not require a
-separate Until Loop checkout. The package remains a release candidate; catalog
+`main` during validation. It bundles exactly one runtime, the ephemeral Until
+Loop callback runtime
+(`skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py`), so
+installing this plugin does not require a separate Until Loop checkout. The
+package remains a release candidate; catalog
 discovery and isolated runtime tests do not establish full execution on every
 host.
 
@@ -202,6 +191,6 @@ marketplace and update/reinstall the plugin after a new Improve release version.
 These commands are for hosts where the marketplace is already registered.
 
 Start with `Dry-run $improve:improve on these changes without writing files.` See the
-[Improve guide](https://github.com/whichguy/skill-craft/blob/b6486f7a09eeafd5bd1e8478e4d4211a4ed3747a/skills/improve/README.md)
+[Improve guide](https://github.com/whichguy/skill-craft/blob/main/skills/improve/README.md)
 for scope, commit overrides, completion conditions and runtime boundaries.
 The ClaudeCraft skill with the same name is a separate implementation.

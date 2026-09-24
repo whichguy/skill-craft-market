@@ -26,7 +26,7 @@ SPEC.loader.exec_module(check_release_payload)
 
 PIN = "0123456789abcdef0123456789abcdef01234567"
 NATIVE_URL = "https://github.com/whichguy/skill-craft.git"
-EXTERNAL_URL = "https://github.com/example/legacy.git"
+EXTERNAL_URL = "https://github.com/example/external.git"
 WORKFLOW_ENGINE_URL = "https://github.com/whichguy/workflow-engine.git"
 
 
@@ -102,17 +102,18 @@ class FakePins:
             self.timeout = timeout
 
     def __init__(self) -> None:
-        self.calls: list[tuple[dict[str, object], object, bool]] = []
+        self.calls: list[tuple[dict[str, object], object]] = []
 
     def verify_catalog(
         self,
         data: dict[str, object],
         transport: object,
         *,
-        full_payload: bool,
-        **_: object,
+        stdout: object,
+        stderr: object,
     ) -> tuple[int, int]:
-        self.calls.append((data, transport, full_payload))
+        # check-pins has one validation tier: no payload-depth option exists.
+        self.calls.append((data, transport))
         return 0, 0
 
 
@@ -176,12 +177,12 @@ class ReleasePayloadTest(unittest.TestCase):
 
     def test_changed_and_new_qualified_entries_get_one_strict_payload_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            base = catalog([plugin("alpha", native=True), plugin("legacy", native=False)])
+            base = catalog([plugin("alpha", native=True), plugin("external", native=False)])
             current = catalog(
                 [
                     plugin("alpha", native=True, version="2.0.0"),
                     plugin("beta", native=True),
-                    plugin("legacy", native=False),
+                    plugin("external", native=False),
                 ]
             )
             repo, base_ref = self.make_repo(Path(tmp), base, current)
@@ -191,12 +192,11 @@ class ReleasePayloadTest(unittest.TestCase):
 
         self.assertEqual(result, 0, stderr)
         self.assertEqual(len(fake.calls), 1)
-        selected, transport, full_payload = fake.calls[0]
+        selected, transport = fake.calls[0]
         self.assertEqual(
             [entry["name"] for entry in selected["plugins"]],
             ["alpha", "beta"],
         )
-        self.assertTrue(full_payload)
         self.assertEqual(transport.timeout, 60)
         self.assertIn(
             "strict payload verification passed for 2 selected full-payload-gated entries",
@@ -205,10 +205,10 @@ class ReleasePayloadTest(unittest.TestCase):
 
     def test_new_workflow_engine_entry_gets_strict_payload_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            base = catalog([plugin("legacy", native=False)])
+            base = catalog([plugin("external", native=False)])
             current = catalog(
                 [
-                    plugin("legacy", native=False),
+                    plugin("external", native=False),
                     plugin("workflow", native=False, workflow_engine=True),
                 ]
             )
@@ -219,31 +219,12 @@ class ReleasePayloadTest(unittest.TestCase):
 
         self.assertEqual(result, 0, stderr)
         self.assertEqual(len(fake.calls), 1)
-        selected, _, full_payload = fake.calls[0]
+        selected, _ = fake.calls[0]
         self.assertEqual([entry["name"] for entry in selected["plugins"]], ["workflow"])
-        self.assertTrue(full_payload)
         self.assertIn(
             "strict payload verification passed for 1 selected full-payload-gated entry",
             stdout,
         )
-
-    def test_backchain_move_to_skill_craft_gets_strict_payload_check(self) -> None:
-        # The external-to-native move (private root repository -> public
-        # skill-craft plugins/backchain) is allowed and strictly verified.
-        old = plugin("backchain", native=False, version="0.3.7")
-        old["source"].update(url="https://github.com/whichguy/backchain.git", ref="main")
-        old["source"].pop("sha")
-        new = rolling_plugin("backchain")
-        new["version"] = "0.3.8"
-        with tempfile.TemporaryDirectory() as tmp:
-            repo, base_ref = self.make_repo(Path(tmp), catalog([old]), catalog([new]))
-            fake = FakePins()
-            result, _, stderr = self.run_gate(repo, base_ref, fake)
-        self.assertEqual(result, 0, stderr)
-        self.assertEqual(len(fake.calls), 1)
-        selected, _, full_payload = fake.calls[0]
-        self.assertEqual([entry["name"] for entry in selected["plugins"]], ["backchain"])
-        self.assertTrue(full_payload)
 
     def test_unchanged_rolling_latest_entry_gets_strict_payload_check(self) -> None:
         rolling = rolling_plugin("ask-agent")
@@ -255,15 +236,14 @@ class ReleasePayloadTest(unittest.TestCase):
 
         self.assertEqual(result, 0, stderr)
         self.assertEqual(len(fake.calls), 1)
-        selected, _, full_payload = fake.calls[0]
+        selected, _ = fake.calls[0]
         self.assertEqual([entry["name"] for entry in selected["plugins"]], ["ask-agent"])
-        self.assertTrue(full_payload)
         self.assertIn("selected full-payload-gated entry", stdout)
 
-    def test_unchanged_legacy_and_removal_do_not_trigger_strict_check(self) -> None:
+    def test_unchanged_external_and_removal_do_not_trigger_strict_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            base = catalog([plugin("legacy", native=False), plugin("retired", native=True)])
-            current = catalog([plugin("legacy", native=False)])
+            base = catalog([plugin("external", native=False), plugin("retired", native=True)])
+            current = catalog([plugin("external", native=False)])
             repo, base_ref = self.make_repo(Path(tmp), base, current)
             fake = FakePins()
 

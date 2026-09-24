@@ -7,11 +7,6 @@ on:
   schedule:
     - cron: "17 6 * * 1"
   workflow_dispatch:
-    inputs:
-      full_payload:
-        description: Verify complete packaged payloads for a release candidate
-        type: boolean
-        default: false
 
 jobs:
   check-pins:
@@ -46,14 +41,9 @@ jobs:
           python3 test/catalog.test.py
           python3 test/pins.test.py
           python3 test/release-payload.test.py
-      - name: Verify catalog pins (ref + sha + manifest + skill body)
+      - name: Verify catalog pins (ref + sha + manifest + skill body + qualified payloads)
         env:
           GH_TOKEN: ${{ secrets.MARKETPLACE_READ_TOKEN || github.token }}
-          VERIFY_FULL_PAYLOAD: ${{ inputs.full_payload || false }}
         run: |
           set -euo pipefail
-          if [[ "$VERIFY_FULL_PAYLOAD" == "true" ]]; then
-            python3 scripts/check-pins.py --full-payload
-          else
-            python3 scripts/check-pins.py
-          fi
+          python3 scripts/check-pins.py

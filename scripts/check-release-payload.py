@@ -16,14 +16,8 @@ from urllib.parse import urlparse
 
 
 CATALOG_RELATIVE = Path(".claude-plugin/marketplace.json")
+SCRIPT_ROOT = Path(__file__).resolve().parents[1]
 NATIVE_REPOSITORY = "whichguy/skill-craft"
-WORKFLOW_ENGINE_REPOSITORY = "whichguy/workflow-engine"
-# A changed catalog entry from these repositories is a release candidate, so
-# CI must inspect its complete immutable payload. Other external entries keep
-# their existing verification path until they are explicitly qualified here.
-FULL_PAYLOAD_REPOSITORIES = frozenset(
-    (NATIVE_REPOSITORY, WORKFLOW_ENGINE_REPOSITORY)
-)
 # A catalog diff cannot describe changes to these mutable refs. They are always
 # selected so the strict checker binds and verifies the current published main
 # commit on every release-payload invocation.
@@ -193,6 +187,12 @@ def load_check_pins(repo: Path) -> ModuleType:
     return module
 
 
+# check-pins.py owns which repositories receive complete-payload validation.
+# Selecting from the same constant guarantees that verify_catalog payload-checks
+# every entry this gate selects.
+FULL_PAYLOAD_REPOSITORIES: frozenset[str] = load_check_pins(SCRIPT_ROOT).FULL_PAYLOAD_REPOSITORIES
+
+
 def run_gate(
     *,
     repo: Path,
@@ -248,7 +248,6 @@ def run_gate(
             transport,
             stdout=stdout,
             stderr=stderr,
-            full_payload=True,
         )
     except Exception as exc:
         print(f"FAIL release-payload: strict verification could not run: {exc}", file=stderr)

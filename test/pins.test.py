@@ -22,6 +22,9 @@ SPEC.loader.exec_module(check_pins)
 
 PIN = "0123456789abcdef0123456789abcdef01234567"
 REPO_NAME = "example/alpha"
+# Immutable pins from FULL_PAYLOAD_REPOSITORIES always get the complete-payload
+# check; REPO_NAME stands in for an unqualified external pin (e.g. lennox-s40).
+QUALIFIED_REPO = "whichguy/workflow-engine"
 REF = "v1.2.3"
 ROLLING_SOURCES: dict[str, tuple[str, str, str | None]] = {
     "ask-agent": ("git-subdir", "whichguy/skill-craft", "plugins/ask-agent"),
@@ -50,10 +53,12 @@ def skill_body(name: str = "alpha", version: str | None = "1.2.3") -> str:
     return f"---\nname: {name}\n{version_line}---\n\n# {name}\n"
 
 
-def entry(*, sha: Any = PIN, ref: Any = REF, version: str = "1.2.3") -> dict[str, Any]:
+def entry(
+    *, sha: Any = PIN, ref: Any = REF, version: str = "1.2.3", repo: str = REPO_NAME
+) -> dict[str, Any]:
     source: dict[str, Any] = {
         "source": "url",
-        "url": f"https://github.com/{REPO_NAME}.git",
+        "url": f"https://github.com/{repo}.git",
         "sha": sha,
     }
     if ref is not None:
@@ -129,20 +134,21 @@ def valid_responses(
     body: str | None = None,
 ) -> dict[str, Any]:
     source = plugin["source"]
+    repo = check_pins.github_repo(source["url"])
     sha = source["sha"]
     package_root = source.get("path", "")
     prefix = f"{package_root}/" if package_root else ""
     responses = {
-        check_pins.commit_url(REPO_NAME, source.get("ref", sha)): {"sha": sha},
-        check_pins.content_url(REPO_NAME, f"{prefix}.claude-plugin/plugin.json", sha): encoded(
+        check_pins.commit_url(repo, source.get("ref", sha)): {"sha": sha},
+        check_pins.content_url(repo, f"{prefix}.claude-plugin/plugin.json", sha): encoded(
             __import__("json").dumps(plugin_manifest or manifest())
         ),
-        check_pins.content_url(REPO_NAME, f"{prefix}skills/alpha/SKILL.md", sha): encoded(
+        check_pins.content_url(repo, f"{prefix}skills/alpha/SKILL.md", sha): encoded(
             body or skill_body()
         ),
     }
     if source.get("ref"):
-        responses[check_pins.compare_url(REPO_NAME, sha, source["ref"])] = {"status": "identical"}
+        responses[check_pins.compare_url(repo, sha, source["ref"])] = {"status": "identical"}
     return responses
 
 
@@ -246,17 +252,24 @@ class PinCheckTest(unittest.TestCase):
         return failures, advisories, stdout.getvalue(), stderr.getvalue()
 
     def full_responses(self, plugin=None):
-        plugin = plugin or entry()
+        """Complete payload responses; the default plugin is a qualified pin."""
+        plugin = plugin or entry(repo=QUALIFIED_REPO)
+        repo = check_pins.github_repo(plugin["source"]["url"])
         responses = valid_responses(plugin)
         prefix = plugin["source"].get("path", "")
         prefix = prefix + "/" if prefix else ""
         paths = ["LICENSE", "README.md", ".claude-plugin/plugin.json", "skills/alpha/SKILL.md"]
-        responses[check_pins.tree_url(REPO_NAME, PIN)] = {
+        if repo in check_pins.CODEX_ADAPTER_REPOSITORIES:
+            paths.append(".codex-plugin/plugin.json")
+            responses[check_pins.content_url(repo, prefix + ".codex-plugin/plugin.json", PIN)] = encoded(
+                __import__("json").dumps(codex_manifest())
+            )
+        responses[check_pins.tree_url(repo, PIN)] = {
             "truncated": False,
             "tree": [{"path": prefix + path, "type": "blob", "mode": "100644"} for path in paths],
         }
         for path in ("LICENSE", "README.md"):
-            responses[check_pins.content_url(REPO_NAME, prefix + path, PIN)] = encoded("fixture content\n")
+            responses[check_pins.content_url(repo, prefix + path, PIN)] = encoded("fixture content\n")
         return responses
 
     def backchain_payload_responses(
@@ -349,9 +362,9 @@ class PinCheckTest(unittest.TestCase):
         )
 
     def test_full_payload_checks_pinned_subdirectory(self):
-        plugin = entry()
+        plugin = entry(repo=QUALIFIED_REPO)
         plugin["source"].update(source="git-subdir", path="plugins/alpha")
-        failures, _, stdout, stderr = self.run_check(catalog(plugin), FakeTransport(self.full_responses(plugin)), full_payload=True)
+        failures, _, stdout, stderr = self.run_check(catalog(plugin), FakeTransport(self.full_responses(plugin)))
         self.assertEqual(failures, 0, stderr)
         self.assertIn("payload=checked", stdout)
 
@@ -426,53 +439,57 @@ class PinCheckTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "dispatch.js is missing or not a regular file"):
             self.verify_backchain(self.backchain_payload_responses(include_dispatch=False))
 
-    def test_legacy_check_does_not_claim_full_payload(self):
+    def test_unqualified_external_pin_is_not_payload_checked(self):
+        # External pins outside FULL_PAYLOAD_REPOSITORIES (lennox-s40,
+        # until-loop) keep ref/manifest/body validation without a tree fetch.
         plugin = entry()
-        failures, _, stdout, _ = self.run_check(catalog(plugin), FakeTransport(valid_responses(plugin)))
-        self.assertEqual(failures, 0)
+        transport = FakeTransport(valid_responses(plugin))
+        failures, _, stdout, stderr = self.run_check(catalog(plugin), transport)
+        self.assertEqual(failures, 0, stderr)
         self.assertIn("payload=not-checked", stdout)
+        self.assertFalse(any("/git/trees/" in call for call in transport.calls))
 
     def test_full_payload_rejects_missing_license(self):
         responses = self.full_responses()
-        tree = responses[check_pins.tree_url(REPO_NAME, PIN)]["tree"]
+        tree = responses[check_pins.tree_url(QUALIFIED_REPO, PIN)]["tree"]
         tree[:] = [item for item in tree if item["path"] != "LICENSE"]
-        failures, _, _, stderr = self.run_check(catalog(entry()), FakeTransport(responses), full_payload=True)
+        failures, _, _, stderr = self.run_check(catalog(entry(repo=QUALIFIED_REPO)), FakeTransport(responses))
         self.assertEqual(failures, 1)
         self.assertIn("missing packaged LICENSE", stderr)
 
     def test_full_payload_rejects_truncated_tree(self):
         responses = self.full_responses()
-        responses[check_pins.tree_url(REPO_NAME, PIN)]["truncated"] = True
-        failures, _, _, stderr = self.run_check(catalog(entry()), FakeTransport(responses), full_payload=True)
+        responses[check_pins.tree_url(QUALIFIED_REPO, PIN)]["truncated"] = True
+        failures, _, _, stderr = self.run_check(catalog(entry(repo=QUALIFIED_REPO)), FakeTransport(responses))
         self.assertEqual(failures, 1)
         self.assertIn("truncated=false", stderr)
 
     def test_full_payload_rejects_symlink(self):
         responses = self.full_responses()
-        responses[check_pins.tree_url(REPO_NAME, PIN)]["tree"].append({"path": "skills/alpha/scripts", "type": "blob", "mode": "120000"})
-        failures, _, _, stderr = self.run_check(catalog(entry()), FakeTransport(responses), full_payload=True)
+        responses[check_pins.tree_url(QUALIFIED_REPO, PIN)]["tree"].append({"path": "skills/alpha/scripts", "type": "blob", "mode": "120000"})
+        failures, _, _, stderr = self.run_check(catalog(entry(repo=QUALIFIED_REPO)), FakeTransport(responses))
         self.assertEqual(failures, 1)
         self.assertIn("materialize symlink", stderr)
 
     def test_full_payload_rejects_unbundled_scripts(self):
         responses = self.full_responses()
         body = "---\nname: alpha\nversion: 1.2.3\nmetadata:\n  skill_craft:\n    kind: script-backed\n---\n"
-        responses[check_pins.content_url(REPO_NAME, "skills/alpha/SKILL.md", PIN)] = encoded(body)
-        failures, _, _, stderr = self.run_check(catalog(entry()), FakeTransport(responses), full_payload=True)
+        responses[check_pins.content_url(QUALIFIED_REPO, "skills/alpha/SKILL.md", PIN)] = encoded(body)
+        failures, _, _, stderr = self.run_check(catalog(entry(repo=QUALIFIED_REPO)), FakeTransport(responses))
         self.assertEqual(failures, 1)
         self.assertIn("no runnable bundled script", stderr)
 
     def test_full_payload_rejects_placeholder_script_files(self):
         responses = self.full_responses()
         body = "---\nname: alpha\nversion: 1.2.3\nmetadata:\n  skill_craft:\n    kind: script-backed\n---\n"
-        responses[check_pins.content_url(REPO_NAME, "skills/alpha/SKILL.md", PIN)] = encoded(body)
-        responses[check_pins.tree_url(REPO_NAME, PIN)]["tree"].append(
+        responses[check_pins.content_url(QUALIFIED_REPO, "skills/alpha/SKILL.md", PIN)] = encoded(body)
+        responses[check_pins.tree_url(QUALIFIED_REPO, PIN)]["tree"].append(
             {"path": "skills/alpha/scripts/README.md", "type": "blob", "mode": "100644"}
         )
-        responses[check_pins.tree_url(REPO_NAME, PIN)]["tree"].append(
+        responses[check_pins.tree_url(QUALIFIED_REPO, PIN)]["tree"].append(
             {"path": "skills/alpha/scripts/.DS_Store", "type": "blob", "mode": "100644"}
         )
-        failures, _, _, stderr = self.run_check(catalog(entry()), FakeTransport(responses), full_payload=True)
+        failures, _, _, stderr = self.run_check(catalog(entry(repo=QUALIFIED_REPO)), FakeTransport(responses))
         self.assertEqual(failures, 1)
         self.assertIn("no runnable bundled script", stderr)
 
@@ -558,9 +575,9 @@ class PinCheckTest(unittest.TestCase):
                 files,
             )
 
-    def test_improve_ephemeral_card_requires_its_declared_runtime_only(self):
+    def test_improve_card_requires_its_single_bundled_runtime(self):
         body = (
-            "---\nname: improve\nversion: 0.2.0-rc.1\nmetadata:\n"
+            "---\nname: improve\nversion: 0.3.0-rc.3\nmetadata:\n"
             "  skill_craft:\n    kind: script-backed\n---\n\n"
             'RUNTIME_SCRIPT="$SKILL_ROOT/runtime/until-loop/scripts/until_loop_ephemeral.py"\n'
         )
@@ -576,14 +593,13 @@ class PinCheckTest(unittest.TestCase):
             transport, "whichguy/skill-craft", PIN, "", "improve", body, files
         )
 
-        calls = "\n".join(transport.calls)
-        self.assertIn(path, calls)
-        self.assertNotIn("runtime/until-loop/scripts/until-loop", calls)
-        self.assertNotIn("scripts/capture_evidence.py", calls)
+        self.assertEqual(
+            transport.calls, [check_pins.content_url("whichguy/skill-craft", path, PIN)]
+        )
 
-    def test_improve_ephemeral_card_rejects_missing_declared_runtime(self):
+    def test_improve_card_rejects_missing_declared_runtime(self):
         body = (
-            "---\nname: improve\nversion: 0.2.0-rc.1\nmetadata:\n"
+            "---\nname: improve\nversion: 0.3.0-rc.3\nmetadata:\n"
             "  skill_craft:\n    kind: script-backed\n---\n\n"
             'RUNTIME_SCRIPT="$SKILL_ROOT/runtime/until-loop/scripts/until_loop_ephemeral.py"\n'
         )
@@ -593,23 +609,23 @@ class PinCheckTest(unittest.TestCase):
                 FakeTransport({}), "whichguy/skill-craft", PIN, "", "improve", body, {}
             )
 
-    def test_legacy_improve_card_keeps_durable_entrypoints(self):
-        body = "---\nname: improve\nversion: 0.1.0-rc.2\nmetadata:\n  skill_craft:\n    kind: script-backed\n---\n"
-        files = {
-            "skills/improve/runtime/until-loop/scripts/until-loop": {"type": "blob", "mode": "100755"},
-        }
+    def test_improve_card_without_ephemeral_runtime_declaration_is_refused(self):
+        # Improve has one bundled runtime; a card that does not declare it is
+        # refused even when the runtime file itself is present.
+        body = "---\nname: improve\nversion: 0.3.0-rc.3\nmetadata:\n  skill_craft:\n    kind: script-backed\n---\n"
+        path = f"skills/improve/{check_pins.IMPROVE_EPHEMERAL_RUNTIME}"
+        files = {path: {"type": "blob", "mode": "100644"}}
         transport = FakeTransport({
-            check_pins.content_url(
-                "whichguy/skill-craft",
-                "skills/improve/runtime/until-loop/scripts/until-loop",
-                PIN,
-            ): encoded("#!/usr/bin/env python3\nprint('fixture')\n"),
+            check_pins.content_url("whichguy/skill-craft", path, PIN): encoded(
+                "#!/usr/bin/env python3\nprint('fixture')\n"
+            ),
         })
 
-        with self.assertRaisesRegex(ValueError, "scripts/capture_evidence.py"):
+        with self.assertRaisesRegex(ValueError, "improve card must declare RUNTIME_SCRIPT"):
             check_pins.validate_script_payload(
                 transport, "whichguy/skill-craft", PIN, "", "improve", body, files
             )
+        self.assertEqual(transport.calls, [])
 
     def test_extensionless_python_entrypoint_does_not_need_executable_mode(self):
         body = "---\nname: review-coverage\nversion: 1.2.3\nmetadata:\n  skill_craft:\n    kind: script-backed\n---\n"
@@ -632,8 +648,7 @@ class PinCheckTest(unittest.TestCase):
 
     def test_native_full_payload_requires_matching_codex_adapter(self):
         repo = "whichguy/skill-craft"
-        responses = {url.replace(REPO_NAME, repo): value for url, value in self.full_responses().items()}
-        responses[check_pins.tree_url(repo, PIN)]["tree"].append({"path": ".codex-plugin/plugin.json", "type": "blob", "mode": "100644"})
+        responses = self.full_responses(entry(repo=repo))
         responses[check_pins.content_url(repo, ".codex-plugin/plugin.json", PIN)] = encoded(
             __import__("json").dumps(dict(manifest(), skills="./skills/", version="9.9.9")))
         with self.assertRaisesRegex(ValueError, "Codex manifest version"):
@@ -641,17 +656,16 @@ class PinCheckTest(unittest.TestCase):
 
     def test_workflow_engine_full_payload_requires_codex_adapter(self):
         repo = "whichguy/workflow-engine"
-        responses = {url.replace(REPO_NAME, repo): value for url, value in self.full_responses().items()}
+        responses = self.full_responses(entry(repo=repo))
+        tree = responses[check_pins.tree_url(repo, PIN)]["tree"]
+        tree[:] = [item for item in tree if item["path"] != ".codex-plugin/plugin.json"]
 
         with self.assertRaisesRegex(ValueError, "missing packaged .codex-plugin/plugin.json"):
             check_pins.verify_payload(FakeTransport(responses), repo, PIN, "", manifest(), skill_body())
 
     def test_native_full_payload_requires_complete_codex_interface(self):
         repo = "whichguy/skill-craft"
-        responses = {url.replace(REPO_NAME, repo): value for url, value in self.full_responses().items()}
-        responses[check_pins.tree_url(repo, PIN)]["tree"].append(
-            {"path": ".codex-plugin/plugin.json", "type": "blob", "mode": "100644"}
-        )
+        responses = self.full_responses(entry(repo=repo))
         incomplete = codex_manifest()
         incomplete["interface"].pop("category")
         responses[check_pins.content_url(repo, ".codex-plugin/plugin.json", PIN)] = encoded(

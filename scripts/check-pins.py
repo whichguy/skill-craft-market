@@ -48,6 +48,13 @@ CODEX_INTERFACE_TEXT_FIELDS = (
 CODEX_ADAPTER_REPOSITORIES = frozenset(
     ("whichguy/skill-craft", "whichguy/workflow-engine")
 )
+# Every entry from these repositories receives complete-payload validation on
+# every check; there is no opt-in tier. Other external pins (e.g. lennox-s40,
+# until-loop) keep ref, manifest and skill-body validation only.
+# check-release-payload.py selects from this same constant.
+FULL_PAYLOAD_REPOSITORIES = frozenset(
+    ("whichguy/skill-craft", "whichguy/workflow-engine")
+)
 
 # These coordinated workflow packages deliberately track their source main
 # branch. The catalog validator restricts this no-SHA form to the same set;
@@ -59,18 +66,24 @@ ROLLING_LATEST_SOURCES: dict[str, tuple[str, str, str | None]] = {
     "backchain": ("git-subdir", "whichguy/skill-craft", "plugins/backchain"),
 }
 
-# Immutable native package entrypoints for this marketplace family. This map
-# is intentionally local to the pin verifier: validating a historical SHA must
-# never depend on whatever happens to be in a current source checkout. Update
-# it only with an intentional native package contract/catalog transition.
+# Improve bundles exactly one runtime: the ephemeral Until Loop callback
+# runtime. Its card must declare this path; a card without the declaration is
+# refused rather than validated against another runtime.
+IMPROVE_EPHEMERAL_RUNTIME = "runtime/until-loop/scripts/until_loop_ephemeral.py"
+_IMPROVE_EPHEMERAL_RUNTIME_DECLARATION = re.compile(
+    r'^RUNTIME_SCRIPT="\$SKILL_ROOT/' + re.escape(IMPROVE_EPHEMERAL_RUNTIME) + r'"$',
+    re.MULTILINE,
+)
+
+# Native package entrypoints for this marketplace family. This map is
+# intentionally local to the pin verifier so validation never depends on a
+# current source checkout. Update it only with an intentional native package
+# contract/catalog transition.
 NATIVE_SCRIPT_ENTRYPOINTS: dict[str, dict[str, str]] = {
     "ask-agent": {"scripts/ask_agent_workspace.py": "python3"},
     "devloop": {"scripts/devloop-run": "bash"},
     "evidence-gates": {"scripts/evidence-gates": "python3"},
-    "improve": {
-        "runtime/until-loop/scripts/until-loop": "python3",
-        "scripts/capture_evidence.py": "python3",
-    },
+    "improve": {IMPROVE_EPHEMERAL_RUNTIME: "python3"},
     "review-coverage": {"scripts/review-coverage": "python3"},
     "shiploop": {"scripts/shiploop": "python3"},
     "shiploop-e2e-audit": {
@@ -94,11 +107,6 @@ BACKCHAIN_MULTI_SKILL_ROOT = "plugins/backchain"
 BACKCHAIN_MULTI_SKILL_PRIMARY = "backchain"
 BACKCHAIN_MULTI_SKILL_SECONDARY = "plan-dispatcher"
 BACKCHAIN_MULTI_SKILL_ENTRYPOINTS = {"scripts/dispatch.js": "node"}
-IMPROVE_EPHEMERAL_RUNTIME = "runtime/until-loop/scripts/until_loop_ephemeral.py"
-_IMPROVE_EPHEMERAL_RUNTIME_DECLARATION = re.compile(
-    r'^RUNTIME_SCRIPT="\$SKILL_ROOT/' + re.escape(IMPROVE_EPHEMERAL_RUNTIME) + r'"$',
-    re.MULTILINE,
-)
 
 
 def is_text(value: Any) -> bool:
@@ -280,16 +288,16 @@ def remote_script_problem(
 
 
 def native_script_entrypoints(name: str, skill_body: str) -> dict[str, str] | None:
-    """Return immutable native helpers, following Improve's pinned card contract.
+    """Return the native helpers a skill-craft package must bundle.
 
-    Improve 0.1.x declares the durable v2 CLI and evidence collector. Its newer
-    card declares the ephemeral callback runtime instead. Read that declaration
-    from the pinned body so historical releases retain their original contract.
+    Improve's card must also declare its single bundled ephemeral runtime.
     """
-    declared = NATIVE_SCRIPT_ENTRYPOINTS.get(name)
-    if name == "improve" and _IMPROVE_EPHEMERAL_RUNTIME_DECLARATION.search(skill_body):
-        return {IMPROVE_EPHEMERAL_RUNTIME: "python3"}
-    return declared
+    if name == "improve" and not _IMPROVE_EPHEMERAL_RUNTIME_DECLARATION.search(skill_body):
+        raise ValueError(
+            "improve card must declare "
+            f'RUNTIME_SCRIPT="$SKILL_ROOT/{IMPROVE_EPHEMERAL_RUNTIME}"'
+        )
+    return NATIVE_SCRIPT_ENTRYPOINTS.get(name)
 
 
 def permits_backchain_secondary_skill(
@@ -528,10 +536,10 @@ def verify_payload(
     manifest: dict[str, Any],
     skill_body: str,
 ) -> None:
-    """Release-only gate for a complete resolved tree; never executes its code.
+    """Verify a complete resolved tree; never executes its code.
 
-    This remains opt-in for old immutable pins while they are being migrated.
-    Rolling sources call it unconditionally after binding their ref to one SHA.
+    verify_catalog calls it for every rolling entry (after binding its ref to
+    one SHA) and every immutable entry from FULL_PAYLOAD_REPOSITORIES.
     """
     payload = transport.get_json(tree_url(repo, sha))
     if not isinstance(payload, dict) or payload.get("truncated") is not False:
@@ -595,7 +603,6 @@ def verify_catalog(
     *,
     stdout: TextIO = sys.stdout,
     stderr: TextIO = sys.stderr,
-    full_payload: bool = False,
 ) -> tuple[int, int]:
     """Return failure and advisory counts after checking every catalog entry."""
     failures = 0
@@ -761,7 +768,7 @@ def verify_catalog(
                 f"!= plugin.json version {manifest_version!r}"
             )
             continue
-        payload_checked = full_payload or floating
+        payload_checked = floating or repo.casefold() in FULL_PAYLOAD_REPOSITORIES
         if payload_checked:
             try:
                 verify_payload(
@@ -797,8 +804,6 @@ def parse_args() -> argparse.Namespace:
         help="catalog to check (default: .claude-plugin/marketplace.json)",
     )
     parser.add_argument("--timeout", type=int, default=60, help="GitHub request timeout in seconds")
-    parser.add_argument("--full-payload", action="store_true",
-                        help="release gate: also verify license, README, complete tree and required Codex adapter at each resolved SHA")
     return parser.parse_args()
 
 
@@ -820,7 +825,6 @@ def main() -> int:
     failures, advisories = verify_catalog(
         data,
         GitHubTransport(os.environ.get("GH_TOKEN", ""), args.timeout),
-        full_payload=args.full_payload,
     )
     if failures:
         print(f"pin-freshness: {failures} failure(s), {advisories} advisory(ies)", file=sys.stderr)

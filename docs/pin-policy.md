@@ -22,18 +22,30 @@ verifier resolves `main` once, records the exact returned SHA, and fetches the
 manifest, card, helper payload, and complete tree only at that SHA. A ref move
 during validation therefore cannot mix bytes from two revisions. Package
 name/version mismatches and hooks fail validation; description drift is advisory.
+
+There is one validation tier. Every run of `scripts/check-pins.py` applies the
+complete-payload check to every rolling entry and to every immutable entry from
+`FULL_PAYLOAD_REPOSITORIES` (`whichguy/skill-craft` and
+`whichguy/workflow-engine`, defined once in `check-pins.py`): the complete
+resolved Git tree, packaged LICENSE/README, the advertised skill and its
+declared script entrypoints, and the required Codex adapter's identity/layout.
+Truncated trees, symlinks and submodules fail rather than pretending their
+targets are bundled. External pins from other repositories (lennox-s40,
+until-loop) report `payload=not-checked`; they keep ref, manifest and skill-body
+validation. The payload check does not execute a skill or prove host/model
+behavior.
+
 No entry requires private access. `GH_TOKEN` is optional: set it only to avoid
 GitHub's anonymous API limit (60 requests per hour), which a full local
 `check-pins.py` run can exceed.
 
 On every pull request and push, CI also runs
 `python3 scripts/check-release-payload.py --base <base-sha>` against the
-merge-base catalog. It applies the complete-payload check to new or changed
-entries from the explicit release-payload allowlist: `whichguy/skill-craft`
-and `whichguy/workflow-engine`; the four rolling entries
-are selected on every invocation because their ref can advance without a catalog
-diff. Unchanged legacy entries are not silently upgraded to that stronger
-contract. Removals are reported without payload verification.
+merge-base catalog. It selects new or changed entries from
+`FULL_PAYLOAD_REPOSITORIES` (the same constant `check-pins.py` uses) and runs
+the same verifier on them; the four rolling entries are selected on every
+invocation because their ref can advance without a catalog diff. Removals are
+reported without payload verification.
 A same-name change from the native Skill Craft source to an external source
 fails: it requires separately qualified migration review and cannot use a
 catalog edit to evade the native release gate. Missing base commits or malformed
@@ -45,18 +57,6 @@ secondary card must retain the `plan-dispatcher` identity, a semantic metadata
 version, script-backed kind, and bundled dispatcher helper. This semantic
 contract means released versions do not require checker edits merely to advance
 a number. The former private root location is no longer qualified.
-
-For a new marketplace-readiness release candidate, additionally run
-`python3 scripts/check-pins.py --full-payload` (or select **full_payload** in the
-manual pin-freshness workflow). This opt-in migration gate verifies the complete
-resolved Git tree, packaged LICENSE/README, advertised skill and script payload,
-and the required Codex adapter's identity/layout for repositories in that
-allowlist. The rolling entries always receive this complete-payload validation,
-even without the flag. Truncated trees, symlinks and submodules fail rather than
-pretending their targets are bundled. Legacy pins may fail the opt-in stronger
-gate until republished; a default `payload=not-checked` for those legacy entries
-does not imply payload readiness. This gate still does not execute a skill or
-prove host/model behavior.
 
 The verifier covers the catalog's current default skill layout:
 `<package root>/skills/<manifest name>/SKILL.md`. Explicit manifest `skills`
