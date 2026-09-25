@@ -1,196 +1,21 @@
-# skill-craft-market
+# skill-craft-market (retired)
 
-**Claude-compatible plugin catalog for Claude Code and Codex** with immutable
-external packages and rolling latest releases for Ask-Agent, ShipLoop, Improve,
-and Backchain from [skill-craft](https://github.com/whichguy/skill-craft).
-**Catalog only** — does not vendor skill prompt bodies.
+This repository is retired and archived. The marketplace now lives in
+[whichguy/skill-craft](https://github.com/whichguy/skill-craft): its root
+catalogs (`.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json`,
+`.grok-plugin/`, `.cursor-plugin/`) keep the marketplace name
+`skill-craft-market`, so plugin IDs such as `shiploop@skill-craft-market` are
+unchanged. Plugins published from other repositories are pinned in
+`catalog/external-plugins.json` there.
 
-**No hooks.** This marketplace never installs plan-oversight, ExitPlanMode soft_exit,
-or residual skill-fire. Those are **L-Policy** → [plan-oversight](https://github.com/whichguy/plan-oversight).
+Re-point an existing registration:
 
-## Three verbs (memorize)
+- Claude Code: `claude plugin marketplace add whichguy/skill-craft` (run it over
+  the existing registration; do not remove the old one first, which uninstalls
+  its plugins). If your settings declare the old source under
+  `extraKnownMarketplaces`, change it to GitHub `whichguy/skill-craft` first.
+- Codex: `codex plugin marketplace remove skill-craft-market`, then
+  `codex plugin marketplace add whichguy/skill-craft`.
+- Grok and Cursor: register `whichguy/skill-craft`.
 
-| Verb | Meaning | Tool |
-|------|---------|------|
-| **install skill** | skill-dir body on a host | skill-craft `./install.sh` |
-| **install plugin** | Host plugin cache from its supported catalog | Claude `plugin install`, Codex `plugin add`; Grok/Cursor use source-repo adapters |
-| **register policy** | ExitPlanMode / Stop hooks | plan-oversight `register-hooks` (not this repo) |
-
-Pick **one track per leaf** on a machine: plugin **or** skill-dir, not both (dev on `main` → skill-dir; consumers wanting a released package → plugin).
-
-## Setup matrix
-
-See **[docs/setup-matrix.md](docs/setup-matrix.md)** for Grok / Claude / Cursor / Codex / OpenCode / Hermes.
-The source repo's [distribution guide](https://github.com/whichguy/skill-craft/blob/main/docs/distribution.md)
-describes both personal installs and marketplace publication.
-
-### Quick answers
-
-| Want | Do |
-|------|-----|
-| Skills on Grok/Claude/Cursor/Codex/OpenCode (development) | In a skill-craft clone: `./install.sh --grok-only --claude-only --cursor-only --codex-only --opencode-only` |
-| Skills on Claude (dev) | same skill-dir **or** plugin — not both |
-| Skills on Claude (released package) | `claude plugin marketplace add whichguy/skill-craft-market` then `claude plugin install <leaf>@skill-craft-market` |
-| Native Grok/Cursor marketplace | Source repo `whichguy/skill-craft`, using its generated native indexes; see host notes |
-| Suites (review-plan, wiki, …) | **claude-craft** marketplace — not this catalog |
-| ExitPlanMode residual fire | **plan-oversight** register — never this catalog, never `install.sh` |
-
-## Codex marketplace
-
-```sh
-codex plugin marketplace add whichguy/skill-craft-market
-codex plugin list --marketplace skill-craft-market --available --json
-# Install only leaves that are not already installed through skill-dir:
-codex plugin add shiploop@skill-craft-market
-```
-
-For a local checkout, register its root instead:
-
-```sh
-codex plugin marketplace add /absolute/path/to/skill-craft-market
-```
-
-In the Codex app, open Plugins and select **Skill Craft** as the marketplace.
-Start a new thread after installing a plugin to load its skills. Marketplace
-registration makes packages discoverable; it does not install every package.
-Use `codex plugin marketplace upgrade skill-craft-market` to refresh a Git
-marketplace. A local marketplace reads the checkout. Existing skill-dir
-installations remain independent; do not install a duplicate plugin for a leaf.
-
-Installation IDs and invocation names differ: install
-`shiploop@skill-craft-market`, then invoke `$shiploop:shiploop` in Codex or
-`/shiploop:shiploop` in Claude. The plugin name supplies the namespace; the
-marketplace name selects the catalog. Bare `$shiploop` can select a separate
-skill-directory installation.
-
-The same `.claude-plugin/marketplace.json` is supported by Codex; no second
-catalog is needed. Root-repository plugins use `source: "url"`; subdirectory
-plugins use `source: "git-subdir"` with a non-root path. Codex omits root-dot
-`git-subdir` entries. Codex presentation and policy fields are ignored by Claude.
-See [official marketplace documentation](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
-
-## Claude catalog
-
-```sh
-claude plugin marketplace add whichguy/skill-craft-market
-claude plugin marketplace update skill-craft-market
-claude plugin install review-coverage@skill-craft-market
-```
-
-Skill-craft packages use **`plugins/<leaf>`** and external root packages omit a
-path. `ask-agent`, `shiploop`, `improve`, and `backchain` follow published
-skill-craft `main` through this catalog. The catalog keeps
-their semantic catalog versions, and the verifier records the exact resolved SHA
-on every check. Other entries retain a full immutable commit SHA.
-
-Canonical file: **`.claude-plugin/marketplace.json`** (only committed catalog).
-
-## Skill-dir (all hosts)
-
-```sh
-git clone https://github.com/whichguy/skill-craft.git
-cd skill-craft
-./install.sh --skill review-coverage   # all six hosts by default, including OpenCode and Hermes
-./install.sh --status --skill review-coverage
-```
-
-## External release package: Until Loop
-
-[`until-loop`](https://github.com/whichguy/until-loop) is a standalone package
-from its dedicated repository, pinned to the immutable commit recorded in
-[the catalog](.claude-plugin/marketplace.json). Improve remains a canonical
-skill-craft package with its own bundled Until Loop runtime and independent
-rolling release; see its release section below.
-
-```sh
-# Codex: add the marketplace once, then install Until Loop.
-codex plugin marketplace add whichguy/skill-craft-market
-codex plugin marketplace upgrade skill-craft-market
-codex plugin add until-loop@skill-craft-market
-
-# Claude Code: add the marketplace once, then install Until Loop.
-claude plugin marketplace add whichguy/skill-craft-market
-claude plugin marketplace update skill-craft-market
-claude plugin install until-loop@skill-craft-market
-```
-
-## Backchain (vendored in skill-craft)
-
-The Backchain plugin contains the planning skill and Plan Dispatcher.
-In Codex, select `$backchain:backchain` or `$backchain:plan-dispatcher`;
-in Claude, use `/backchain:backchain` or `/backchain:plan-dispatcher`.
-
-It installs anonymously from public skill-craft `plugins/backchain`, a
-provenance-verified copy of the Backchain development source, which remains
-private. No GitHub token is needed. Keep one track per host: either the
-skill-directory links to a Backchain checkout or this plugin, not both.
-
-Grok installs Backchain from the skill-craft marketplace
-(`grok plugin marketplace add whichguy/skill-craft`) or this catalog.
-
-## External pin: lennox-s40
-
-Thermostat skill body lives in **[whichguy/lennox-s40](https://github.com/whichguy/lennox-s40)** (not skill-craft monorepo).
-
-```sh
-cd ~/src/lennox-s40 && ./install.sh    # skill-dir
-# Claude/Codex plugin via this catalog (immutable main SHA, standalone repository URL)
-```
-
-## Pin policy
-
-Standalone **Until Loop** is also available as `until-loop@skill-craft-market`
-from [whichguy/until-loop](https://github.com/whichguy/until-loop), using the
-immutable catalog pin. **Improve** retains its canonical skill-craft source and its own
-rolling release; installing Until Loop does not replace Improve.
-
-Normative release steps: skill-craft [`docs/skill-release-checklist.md`](https://github.com/whichguy/skill-craft/blob/main/docs/skill-release-checklist.md).  
-Market-side notes: [docs/pin-policy.md](docs/pin-policy.md).
-
-Immutable entries are not bulk-retargeted when leaf content is unchanged. The
-four coordinated workflow entries follow skill-craft `main`; a package version bump gives
-host caches an update signal without pinning the branch content. See
-[docs/pin-policy.md](docs/pin-policy.md#rolling-workflow-releases).
-
-## Faces
-
-Host notes under `faces/{claude,grok,cursor,codex,hermes}/` point at the setup matrix.
-No second marketplace.json under faces. Grok/Cursor indexes live in the source
-repo and reference its existing packages; this repo retains release metadata and
-immutable sources where applicable.
-
-## Layout
-
-See [docs/package-layout.md](docs/package-layout.md).
-
-## Improve release candidate
-
-`improve@skill-craft-market` publishes the standalone Improve workflow from
-`skill-craft/plugins/improve`, at the semantic catalog version recorded in
-[the catalog](.claude-plugin/marketplace.json) and resolved from published
-`main` during validation. It bundles exactly one runtime, the ephemeral Until
-Loop callback runtime
-(`skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py`), so
-installing this plugin does not require a separate Until Loop checkout. The
-package remains a release candidate; catalog
-discovery and isolated runtime tests do not establish full execution on every
-host.
-
-```sh
-codex plugin marketplace upgrade skill-craft-market
-codex plugin add improve@skill-craft-market
-# Claude Code:
-claude plugin marketplace update skill-craft-market
-claude plugin install improve@skill-craft-market
-```
-
-Choose one installation track. If Improve is already exposed through a local
-skill-directory pilot, keep that pilot or deliberately switch to this marketplace
-plugin; do not install a duplicate merely to update the catalog. Refresh the
-marketplace and update/reinstall the plugin after a new Improve release version.
-These commands are for hosts where the marketplace is already registered.
-
-Start with `Dry-run $improve:improve on these changes without writing files.` See the
-[Improve guide](https://github.com/whichguy/skill-craft/blob/main/skills/improve/README.md)
-for scope, commit overrides, completion conditions and runtime boundaries.
-The ClaudeCraft skill with the same name is a separate implementation.
+See [Install and distribute Skill Craft](https://github.com/whichguy/skill-craft/blob/main/docs/distribution.md).
