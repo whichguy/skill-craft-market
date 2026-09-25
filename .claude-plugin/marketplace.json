@@ -331,7 +331,7 @@
     {
       "name": "shiploop",
       "description": "Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact completion call until the script reports completion with an HTML achievement report. Use when the user says shiploop, ship the project, or requests a durable delivery loop.",
-      "version": "0.24.0",
+      "version": "0.24.1",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -351,7 +351,7 @@
     {
       "name": "improve",
       "description": "Use when a repository candidate needs a deliberate review-and-improvement loop: use recent Git history, make warranted changes, run meaningful checks, and require two consecutive trivial-only review passes. Supports a read-only interpretation preview; not a one-off code review.",
-      "version": "0.3.0-rc.3",
+      "version": "0.3.0-rc.4",
       "author": {
         "name": "whichguy"
       },
@@ -389,8 +389,8 @@
     },
     {
       "name": "until-loop",
-      "description": "Interpret natural-language work and evidence-based exit conditions with a private callback state file, LLM judgment, and legacy-run compatibility.",
-      "version": "0.4.0-rc.2",
+      "description": "Interpret natural-language work and evidence-based exit conditions with a private callback state file and LLM judgment.",
+      "version": "0.5.0",
       "author": {
         "name": "whichguy"
       },
@@ -399,7 +399,7 @@
         "url": "https://github.com/whichguy/until-loop.git",
         "path": "plugins/until-loop",
         "ref": "main",
-        "sha": "b88c730df41e016fb9ba490dabcb4c0c32d36a54"
+        "sha": "5df2a2feef4d80b93ca3c8a749d7d265c082d376"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -451,7 +451,7 @@
     {
       "name": "shiploop-e2e-audit",
       "description": "Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full campaigns, or review of existing trial output. Full Google Apps Script and Salesforce game cases require an authorized test deployment and hosted behavior evidence. Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -461,7 +461,7 @@
         "url": "https://github.com/whichguy/skill-craft.git",
         "path": "plugins/shiploop-e2e-audit",
         "ref": "main",
-        "sha": "a8302f258027c901896ddbac96d3effde9f2cbff"
+        "sha": "1732b32d55a49d8ac9f5cf1c0e8bb120ee4e451a"
       },
       "policy": {
         "installation": "AVAILABLE",
